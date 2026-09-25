@@ -43,7 +43,7 @@ class ProductImage extends StatelessWidget {
         child: Icon(
           categoryIcon(product.category),
           size: iconSize,
-          color: Colors.white.withOpacity(0.75),
+          color: Colors.white.withValues(alpha: 0.75),
         ),
       ),
     );

@@ -61,8 +61,8 @@ class HomePage extends StatelessWidget {
                       Navigator.of(context).pushReplacement(
                         PageRouteBuilder(
                           transitionDuration: const Duration(milliseconds: 500),
-                          pageBuilder: (_, __, ___) => const AuthPage(),
-                          transitionsBuilder: (_, animation, __, child) =>
+                          pageBuilder: (_, _, _) => const AuthPage(),
+                          transitionsBuilder: (_, animation, _, child) =>
                               FadeTransition(opacity: animation, child: child),
                         ),
                       );

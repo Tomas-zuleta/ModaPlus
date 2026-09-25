@@ -6,8 +6,8 @@ Route<void> fadeRoute(
 }) {
   return PageRouteBuilder<void>(
     transitionDuration: duration,
-    pageBuilder: (_, __, ___) => page,
-    transitionsBuilder: (_, animation, __, child) =>
+    pageBuilder: (_, _, _) => page,
+    transitionsBuilder: (_, animation, _, child) =>
         FadeTransition(opacity: animation, child: child),
   );
 }
