@@ -7,6 +7,8 @@ class CollectionCard extends StatelessWidget {
   final List<Color> colors;
   final IconData icon;
   final String? assetPath;
+  final bool centered;
+  final String buttonText;
   final VoidCallback onTap;
 
   const CollectionCard({
@@ -16,6 +18,8 @@ class CollectionCard extends StatelessWidget {
     required this.icon,
     required this.onTap,
     this.assetPath,
+    this.centered = false,
+    this.buttonText = 'EXPLORAR',
   });
 
   @override
@@ -55,37 +59,62 @@ class CollectionCard extends StatelessWidget {
                 ),
               ),
             ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 36),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 44,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                        shadows: [Shadow(blurRadius: 8, color: Colors.black26)],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
-                      color: Colors.white,
-                      child: const Text(
-                        'EXPLORAR',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
+            centered ? _centeredLabel() : _cornerLabel(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _cornerLabel() {
+    return Align(
+      alignment: Alignment.bottomLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 26, bottom: 28),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 22),
+          color: const Color(0xEBFFFFFF),
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 22,
+              letterSpacing: 1,
+              color: AppColors.textDark,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _centeredLabel() {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 44,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+                shadows: [Shadow(blurRadius: 8, color: Colors.black26)],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
+              color: Colors.white,
+              child: Text(
+                buttonText,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                  color: AppColors.primary,
                 ),
               ),
             ),

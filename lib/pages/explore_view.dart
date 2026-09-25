@@ -46,6 +46,8 @@ class ExploreView extends StatelessWidget {
             CollectionCard(
               title: 'Camisas',
               icon: Icons.checkroom,
+              centered: true,
+              buttonText: 'Camisas',
               colors: const [Color(0xFF2F6B4F), Color(0xFFA9D6BE)],
               // assetPath: 'assets/camisas.jpg',
               onTap: () => onOpenCategory('Camisas'),
@@ -54,6 +56,8 @@ class ExploreView extends StatelessWidget {
             CollectionCard(
               title: 'Pantalones',
               icon: Icons.accessibility_new,
+              centered: true,
+              buttonText: 'Pantalones',
               colors: const [Color(0xFF1F4D3A), Color(0xFFC9CDD6)],
               // assetPath: 'assets/pantalones.jpg',
               onTap: () => onOpenCategory('Pantalones'),
@@ -62,6 +66,8 @@ class ExploreView extends StatelessWidget {
             CollectionCard(
               title: 'Vestidos',
               icon: Icons.woman,
+              centered: true,
+              buttonText: 'Vestidos',
               colors: const [Color(0xFFB8BDD0), Color(0xFFB8BDD0)],
               // assetPath: 'assets/vestidos.jpg',
               onTap: () => onOpenCategory('Vestidos'),
@@ -70,7 +76,7 @@ class ExploreView extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: PrimaryButton(
-                text: 'Ver todas las categorías',
+                text: 'Ver Catalogo Completo',
                 onPressed: () => onOpenCategory(null),
               ),
             ).stagger(5),
