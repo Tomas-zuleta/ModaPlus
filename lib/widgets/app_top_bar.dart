@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../utils/app_colors.dart';
+import 'cart_fly_animation.dart';
 
 class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
   final int cartCount;
@@ -34,6 +35,7 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
           ? null
           : [
               IconButton(
+                key: CartFlyAnimation.cartTargetKey,
                 onPressed: onCartTap,
                 icon: Badge(
                   isLabelVisible: cartCount > 0,
