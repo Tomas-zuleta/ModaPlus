@@ -17,6 +17,7 @@ class Product {
   final List<String> sizes;
   final List<ProductColor> colors;
   final Color tone;
+  final String? assetPath;
 
   const Product({
     required this.id,
@@ -29,5 +30,6 @@ class Product {
     required this.sizes,
     required this.colors,
     required this.tone,
+    this.assetPath,
   });
 }

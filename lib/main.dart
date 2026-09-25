@@ -28,4 +28,4 @@ class ModaPlusApp extends StatelessWidget {
       home: const AuthPage(),
     );
   }
-}
+}   

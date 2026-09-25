@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
-enum OrderStatus { pending, partial, paid, delivered, cancelled }
+enum OrderStatus { requested, verification, partial, paid, delivered, cancelled }
 
 extension OrderStatusX on OrderStatus {
   String get label => switch (this) {
-        OrderStatus.pending => 'Pendiente',
+        OrderStatus.requested => 'Solicitado',
+        OrderStatus.verification => 'En verificación',
         OrderStatus.partial => 'Abonado',
         OrderStatus.paid => 'Pagado',
         OrderStatus.delivered => 'Entregado',
@@ -12,7 +13,8 @@ extension OrderStatusX on OrderStatus {
       };
 
   Color get color => switch (this) {
-        OrderStatus.pending => const Color(0xFFB7791F),
+        OrderStatus.requested => const Color(0xFFB7791F),
+        OrderStatus.verification => const Color(0xFF7C5CBF),
         OrderStatus.partial => const Color(0xFF3B5BA9),
         OrderStatus.paid => const Color(0xFF3B8B67),
         OrderStatus.delivered => const Color(0xFF475569),
@@ -21,7 +23,11 @@ extension OrderStatusX on OrderStatus {
 
   /// Estados a los que puede pasar desde el actual.
   List<OrderStatus> get next => switch (this) {
-        OrderStatus.pending => <OrderStatus>[
+        OrderStatus.requested => <OrderStatus>[
+            OrderStatus.verification,
+            OrderStatus.cancelled,
+          ],
+        OrderStatus.verification => <OrderStatus>[
             OrderStatus.partial,
             OrderStatus.paid,
             OrderStatus.cancelled,
@@ -75,7 +81,7 @@ class Order {
     required this.createdAt,
     required this.items,
     this.paid = 0,
-    this.status = OrderStatus.pending,
+    this.status = OrderStatus.requested,
   });
 
   int get total => items.fold<int>(0, (s, i) => s + i.subtotal);

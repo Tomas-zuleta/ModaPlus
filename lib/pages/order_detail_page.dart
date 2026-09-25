@@ -19,8 +19,10 @@ class OrderDetailPage extends StatelessWidget {
 
   const OrderDetailPage({super.key, required this.order, required this.isAdmin});
 
-  bool get _open =>
-      order.status == OrderStatus.pending || order.status == OrderStatus.partial;
+   bool get _open =>
+      order.status == OrderStatus.requested ||
+      order.status == OrderStatus.verification ||
+      order.status == OrderStatus.partial;
 
   String get _vigencia =>
       order.daysLeft < 0 ? 'Vencido' : '${order.daysLeft} día(s) restantes';

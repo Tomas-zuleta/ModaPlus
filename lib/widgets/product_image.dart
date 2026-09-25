@@ -17,6 +17,15 @@ class ProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (product.assetPath != null) {
+      return Image.asset(
+        product.assetPath!,
+        height: height,
+        width: double.infinity,
+        fit: BoxFit.cover,
+      );
+    }
+
     return Container(
       height: height,
       width: double.infinity,
