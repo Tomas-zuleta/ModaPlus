@@ -1,6 +1,14 @@
 import '../utils/format.dart';
 
-enum PlanStatus { active, cancelled }
+enum PlanStatus { active, completed, cancelled }
+
+extension PlanStatusLabel on PlanStatus {
+  String get label => switch (this) {
+    PlanStatus.active => 'Activo',
+    PlanStatus.completed => 'Pagado',
+    PlanStatus.cancelled => 'Anulado',
+  };
+}
 
 class PlanItem {
   final String name;
@@ -45,12 +53,36 @@ class PlanSepare {
     required this.abonos,
     this.status = PlanStatus.active,
     this.annulNote,
-  });
+  }) {
+    if (status == PlanStatus.active && balance == 0) {
+      status = PlanStatus.completed;
+    }
+  }
 
   int get total => items.fold<int>(0, (s, i) => s + i.subtotal);
   int get paid => abonos.fold<int>(0, (s, a) => s + a.amount);
   int get balance => total - paid;
   bool get isActive => status == PlanStatus.active;
+  bool get canReceivePayments => isActive && balance > 0;
+
+  void addPayment(int amount, {DateTime? date}) {
+    if (!canReceivePayments) {
+      throw StateError('El plan no admite nuevos abonos.');
+    }
+    if (amount <= 0) {
+      throw ArgumentError.value(amount, 'amount', 'Debe ser mayor que cero.');
+    }
+    if (amount > balance) {
+      throw ArgumentError.value(
+        amount,
+        'amount',
+        'No puede superar el saldo pendiente.',
+      );
+    }
+
+    abonos.insert(0, Abono(date ?? DateTime.now(), amount));
+    if (balance == 0) status = PlanStatus.completed;
+  }
 
   double get progress =>
       total == 0 ? 0.0 : (paid / total).clamp(0.0, 1.0).toDouble();

@@ -190,7 +190,7 @@ class _CategorySection extends StatelessWidget {
               dragStartBehavior: DragStartBehavior.down,
               padding: const EdgeInsets.symmetric(horizontal: 24),
               itemCount: preview.length + 1,
-              separatorBuilder: (_, __) => const SizedBox(width: 14),
+              separatorBuilder: (_, _) => const SizedBox(width: 14),
               itemBuilder: (context, i) {
                 if (i == preview.length) {
                   return _SeeMoreCard(

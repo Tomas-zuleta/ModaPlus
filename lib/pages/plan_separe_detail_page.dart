@@ -8,10 +8,12 @@ import '../utils/format.dart';
 import '../widgets/detail_app_bar.dart';
 import '../widgets/info_row.dart';
 import '../widgets/line_item_row.dart';
+import '../widgets/primary_button.dart';
 import '../widgets/progress_bar.dart';
 import '../widgets/sans_scope.dart';
 import '../widgets/section_card.dart';
 import '../widgets/status_chip.dart';
+import 'plan_payment_dialog.dart';
 
 class PlanSepareDetailPage extends StatelessWidget {
   final PlanSepare plan;
@@ -35,17 +37,28 @@ class PlanSepareDetailPage extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Anular',
-                style: TextStyle(color: AppColors.redAccent)),
+            child: const Text(
+              'Anular',
+              style: TextStyle(color: AppColors.redAccent),
+            ),
           ),
         ],
       ),
     );
     if (ok != true || !context.mounted) return;
     AppStore.instance.annulPlan(plan);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Plan separe anulado')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Plan separe anulado')));
+  }
+
+  Future<void> _registerPayment(BuildContext context) async {
+    final saved = await showPlanPaymentDialog(context, plan);
+    if (saved && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Abono registrado correctamente')),
+      );
+    }
   }
 
   @override
@@ -76,16 +89,20 @@ class PlanSepareDetailPage extends StatelessWidget {
                           ),
                         ),
                         StatusChip(
-                          label: plan.isActive ? 'Activo' : 'Anulado',
-                          color: plan.isActive
-                              ? AppColors.primary
-                              : AppColors.redAccent,
+                          label: plan.status.label,
+                          color: switch (plan.status) {
+                            PlanStatus.active => AppColors.primary,
+                            PlanStatus.completed => AppColors.navy,
+                            PlanStatus.cancelled => AppColors.redAccent,
+                          },
                         ),
                       ],
                     ).stagger(0),
                     const SizedBox(height: 4),
-                    Text('Documento: ${plan.clientDoc}',
-                        style: const TextStyle(color: AppColors.slate)),
+                    Text(
+                      'Documento: ${plan.clientDoc}',
+                      style: const TextStyle(color: AppColors.slate),
+                    ),
                     const SizedBox(height: 20),
                     SectionCard(
                       title: 'PRODUCTOS RESERVADOS',
@@ -107,7 +124,10 @@ class PlanSepareDetailPage extends StatelessWidget {
                       child: Column(
                         children: [
                           InfoRow(label: 'Total', value: formatCop(plan.total)),
-                          InfoRow(label: 'Abonado', value: formatCop(plan.paid)),
+                          InfoRow(
+                            label: 'Abonado',
+                            value: formatCop(plan.paid),
+                          ),
                           InfoRow(
                             label: 'Saldo pendiente',
                             value: formatCop(plan.balance),
@@ -126,7 +146,8 @@ class PlanSepareDetailPage extends StatelessWidget {
                           ),
                           InfoRow(
                             label: 'Vence',
-                            value: '${formatDate(plan.dueDate)}'
+                            value:
+                                '${formatDate(plan.dueDate)}'
                                 '${plan.isActive ? ' · $_dueText' : ''}',
                           ),
                         ],
@@ -142,6 +163,11 @@ class PlanSepareDetailPage extends StatelessWidget {
                               label: formatDate(a.date),
                               value: formatCop(a.amount),
                             ),
+                          if (plan.abonos.isEmpty)
+                            const Text(
+                              'Este plan todavía no tiene abonos.',
+                              style: TextStyle(color: AppColors.slate),
+                            ),
                         ],
                       ),
                     ).stagger(3),
@@ -152,12 +178,19 @@ class PlanSepareDetailPage extends StatelessWidget {
                         child: Text(
                           plan.annulNote!,
                           style: const TextStyle(
-                              fontSize: 14, color: AppColors.textDark),
+                            fontSize: 14,
+                            color: AppColors.textDark,
+                          ),
                         ),
                       ).stagger(4),
                     ],
                     if (plan.isActive) ...[
                       const SizedBox(height: 24),
+                      PrimaryButton(
+                        text: 'Registrar abono',
+                        onPressed: () => _registerPayment(context),
+                      ).stagger(4),
+                      const SizedBox(height: 12),
                       SizedBox(
                         height: 52,
                         child: OutlinedButton(
@@ -175,7 +208,7 @@ class PlanSepareDetailPage extends StatelessWidget {
                             ),
                           ),
                         ),
-                      ).stagger(4),
+                      ).stagger(5),
                     ],
                   ],
                 ),

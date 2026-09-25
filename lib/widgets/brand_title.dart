@@ -21,6 +21,6 @@ class BrandTitle extends StatelessWidget {
         .fadeIn(duration: 700.ms)
         .slideY(begin: -0.5, end: 0, duration: 700.ms, curve: Curves.easeOutCubic)
         .then(delay: 200.ms)
-        .shimmer(duration: 1200.ms, color: AppColors.primary.withOpacity(0.5));
+        .shimmer(duration: 1200.ms, color: AppColors.primary.withValues(alpha: 0.5));
   }
 }

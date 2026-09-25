@@ -124,7 +124,7 @@ class _CartPageState extends State<CartPage> {
                       child: ListView.separated(
                         padding: const EdgeInsets.all(24),
                         itemCount: cart.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
                         itemBuilder: (context, i) => _CartRow(item: cart[i]),
                       ),
                     ),

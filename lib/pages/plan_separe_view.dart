@@ -8,10 +8,12 @@ import '../utils/format.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/filter_chips.dart';
 import '../widgets/progress_bar.dart';
+import '../widgets/primary_button.dart';
 import '../widgets/status_chip.dart';
+import 'plan_separe_create_page.dart';
 import 'plan_separe_detail_page.dart';
 
-enum PlanFilter { all, active, cancelled }
+enum PlanFilter { all, active, completed, cancelled }
 
 class PlanSepareView extends StatefulWidget {
   const PlanSepareView({super.key});
@@ -24,10 +26,11 @@ class _PlanSepareViewState extends State<PlanSepareView> {
   PlanFilter _filter = PlanFilter.all;
 
   String _label(PlanFilter f) => switch (f) {
-        PlanFilter.all => 'Todos',
-        PlanFilter.active => 'Activos',
-        PlanFilter.cancelled => 'Anulados',
-      };
+    PlanFilter.all => 'Todos',
+    PlanFilter.active => 'Activos',
+    PlanFilter.completed => 'Pagados',
+    PlanFilter.cancelled => 'Anulados',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -40,8 +43,10 @@ class _PlanSepareViewState extends State<PlanSepareView> {
               return true;
             case PlanFilter.active:
               return p.isActive;
+            case PlanFilter.completed:
+              return p.status == PlanStatus.completed;
             case PlanFilter.cancelled:
-              return !p.isActive;
+              return p.status == PlanStatus.cancelled;
           }
         }).toList();
 
@@ -63,7 +68,9 @@ class _PlanSepareViewState extends State<PlanSepareView> {
                 Container(
                   padding: const EdgeInsets.only(bottom: 12),
                   decoration: const BoxDecoration(
-                    border: Border(bottom: BorderSide(color: AppColors.panelBorder)),
+                    border: Border(
+                      bottom: BorderSide(color: AppColors.panelBorder),
+                    ),
                   ),
                   child: const Text(
                     'Reservas realizadas por los clientes',
@@ -71,12 +78,30 @@ class _PlanSepareViewState extends State<PlanSepareView> {
                   ),
                 ).stagger(1),
                 const SizedBox(height: 20),
+                PrimaryButton(
+                  text: 'Nuevo plan separe',
+                  onPressed: () async {
+                    final plan = await Navigator.of(context).push<PlanSepare>(
+                      MaterialPageRoute(
+                        builder: (_) => const PlanSepareCreatePage(),
+                      ),
+                    );
+                    if (plan != null && context.mounted) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => PlanSepareDetailPage(plan: plan),
+                        ),
+                      );
+                    }
+                  },
+                ).stagger(2),
+                const SizedBox(height: 20),
                 FilterChipsRow<PlanFilter>(
                   values: PlanFilter.values,
                   selected: _filter,
                   labelOf: _label,
                   onSelected: (f) => setState(() => _filter = f),
-                ).stagger(2),
+                ).stagger(3),
                 const SizedBox(height: 16),
                 if (plans.isEmpty)
                   const EmptyState(
@@ -87,7 +112,9 @@ class _PlanSepareViewState extends State<PlanSepareView> {
                   for (int i = 0; i < plans.length; i++)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: _PlanCard(plan: plans[i]).stagger(i > 5 ? 5 : i + 3),
+                      child: _PlanCard(
+                        plan: plans[i],
+                      ).stagger(i > 5 ? 5 : i + 3),
                     ),
               ],
             ),
@@ -130,14 +157,20 @@ class _PlanCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 StatusChip(
-                  label: plan.isActive ? 'Activo' : 'Anulado',
-                  color: plan.isActive ? AppColors.primary : AppColors.redAccent,
+                  label: plan.status.label,
+                  color: switch (plan.status) {
+                    PlanStatus.active => AppColors.primary,
+                    PlanStatus.completed => AppColors.navy,
+                    PlanStatus.cancelled => AppColors.redAccent,
+                  },
                 ),
               ],
             ),
             const SizedBox(height: 10),
-            Text(plan.clientName,
-                style: const TextStyle(fontSize: 18, color: AppColors.textDark)),
+            Text(
+              plan.clientName,
+              style: const TextStyle(fontSize: 18, color: AppColors.textDark),
+            ),
             const SizedBox(height: 4),
             Text(
               '${plan.items.length} producto(s) · Vence ${formatDate(plan.dueDate)}',
@@ -158,7 +191,7 @@ class _PlanCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Total ${formatCop(plan.total)}',
+                  'Saldo ${formatCop(plan.balance)}',
                   style: const TextStyle(fontSize: 12, color: AppColors.slate),
                 ),
               ],
