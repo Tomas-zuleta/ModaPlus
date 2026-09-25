@@ -62,7 +62,6 @@ class ExploreView extends StatelessWidget {
             CollectionCard(
               title: 'Vestidos',
               icon: Icons.woman,
-              centered: true,
               colors: const [Color(0xFFB8BDD0), Color(0xFFB8BDD0)],
               // assetPath: 'assets/vestidos.jpg',
               onTap: () => onOpenCategory('Vestidos'),

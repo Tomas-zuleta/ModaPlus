@@ -53,6 +53,7 @@ const List<Product> catalogProducts = [
     sizes: _letterSizes,
     colors: [_beige, _white, _blue],
     tone: Color(0xFFD9C7A3),
+    assetPath:'assets/images/camisabage.jpg',
   ),
   Product(
     id: 'p02',
@@ -66,6 +67,7 @@ const List<Product> catalogProducts = [
     sizes: _letterSizes,
     colors: [_white, _beige],
     tone: Color(0xFFCFC6B5),
+    assetPath: 'assets/images/camisetalino.jpg',
   ),
   Product(
     id: 'p03',
@@ -79,6 +81,7 @@ const List<Product> catalogProducts = [
     sizes: _letterSizes,
     colors: [_white, _black, _gray],
     tone: Color(0xFFB8BDD0),
+    assetPath:'assets/images/camiseta-blanca.jpg'
   ),
   Product(
     id: 'p04',
@@ -92,6 +95,7 @@ const List<Product> catalogProducts = [
     sizes: _letterSizes,
     colors: [_black, _white],
     tone: Color(0xFF6B7280),
+     assetPath:'assets/images/camisetaestampada.jpg'
   ),
   Product(
     id: 'p05',
@@ -105,6 +109,7 @@ const List<Product> catalogProducts = [
     sizes: _jeanSizes,
     colors: [_gray, _black, _green],
     tone: Color(0xFF7C8794),
+     assetPath:'assets/images/pantalon.jpg'
   ),
   Product(
     id: 'p06',
@@ -118,6 +123,7 @@ const List<Product> catalogProducts = [
     sizes: _jeanSizes,
     colors: [_blue, _black],
     tone: Color(0xFF3B5BA9),
+     assetPath:'assets/images/jeanslim.jpg'
   ),
   Product(
     id: 'p07',
@@ -131,6 +137,7 @@ const List<Product> catalogProducts = [
     sizes: _jeanSizes,
     colors: [_blue, _gray],
     tone: Color(0xFF7D9BD1),
+     assetPath:'assets/images/jeanmom.jpg'
   ),
   Product(
     id: 'p08',
@@ -144,6 +151,7 @@ const List<Product> catalogProducts = [
     sizes: _letterSizes,
     colors: [_black, _green, _gray],
     tone: Color(0xFF1F2937),
+     assetPath:'assets/images/chaqueta.jpg'
   ),
   Product(
     id: 'p09',
@@ -157,6 +165,7 @@ const List<Product> catalogProducts = [
     sizes: _letterSizes,
     colors: [_green, _black],
     tone: Color(0xFF1F4D3A),
+     assetPath:'assets/images/chaquetaverde.jpg'
   ),
   Product(
     id: 'p10',
@@ -170,6 +179,7 @@ const List<Product> catalogProducts = [
     sizes: _letterSizes,
     colors: [_gray, _black, _beige],
     tone: Color(0xFF9CA3AF),
+     assetPath:'assets/images/busocanguro.jpg'
   ),
   Product(
     id: 'p11',
@@ -183,6 +193,7 @@ const List<Product> catalogProducts = [
     sizes: _letterSizes,
     colors: [_black, _beige],
     tone: Color(0xFF374151),
+     assetPath:'assets/images/busocuelloalto.jpg'
   ),
   Product(
     id: 'p12',
@@ -196,6 +207,7 @@ const List<Product> catalogProducts = [
     sizes: _dressSizes,
     colors: [_green, _beige],
     tone: Color(0xFF5FA37F),
+     assetPath:'assets/images/vestido.jpg'
   ),
   Product(
     id: 'p13',
@@ -209,5 +221,6 @@ const List<Product> catalogProducts = [
     sizes: _dressSizes,
     colors: [_pink, _white],
     tone: Color(0xFFE59AAE),
+     assetPath:'assets/images/vestidofloral.jpg'
   ),
 ];

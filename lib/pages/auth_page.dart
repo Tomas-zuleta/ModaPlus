@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import '../data/app_store.dart';
 import '../models/user_role.dart';
 import '../utils/fade_route.dart';
+import '../utils/platform_info.dart';
 import '../widgets/auth_footer_link.dart';
 import '../widgets/brand_title.dart';
 import '../widgets/login_form.dart';
 import '../widgets/register_form.dart';
+import 'admin_shell.dart';
+import 'client_shell.dart';
 import 'forgot_password_page.dart';
 import 'loading_page.dart';
 
@@ -43,11 +46,15 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 
-  /// Quien se registra siempre entra como cliente.
   Future<void> _register(String name, String email, String password) {
-    return _enter(name: name, email: email, role: UserRole.client);
+    return _enter(
+      name: name.trim().isEmpty ? _nameFromEmail(email) : name.trim(),
+      email: email,
+      role: UserRole.client,
+    );
   }
 
+  /// Quien se registra siempre entra como cliente.
   Future<void> _enter({
     required String name,
     required String email,
@@ -60,9 +67,12 @@ class _AuthPageState extends State<AuthPage> {
 
     AppStore.instance.startSession(name: name, email: email, role: role);
 
-    Navigator.of(context).pushReplacement(
-      fadeRoute(LoadingPage(name: name, role: role)),
-    );
+    // En computador (escritorio o navegador) se omite la pantalla de carga.
+    final Widget destination = isDesktopPlatform
+        ? (role == UserRole.admin ? const AdminShell() : const ClientShell())
+        : LoadingPage(name: name, role: role);
+
+    Navigator.of(context).pushReplacement(fadeRoute(destination));
   }
 
   String _nameFromEmail(String email) {

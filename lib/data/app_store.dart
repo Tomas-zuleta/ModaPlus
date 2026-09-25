@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:modaplus/widgets/user_session.dart';
-import '../models/cart_item.dart';
 
+import '../models/cart_item.dart';
 import '../models/order.dart';
 import '../models/plan_separe.dart';
 import '../models/user_role.dart';
@@ -11,11 +10,13 @@ class AppStore extends ChangeNotifier {
   AppStore._() {
     _seed();
   }
+
   static final AppStore instance = AppStore._();
 
   UserSession? session;
   final List<PlanSepare> plans = [];
   final List<Order> orders = [];
+  final List<CartItem> cart = [];
 
   // ---------------- Sesión ----------------
   void startSession({
@@ -29,12 +30,8 @@ class AppStore extends ChangeNotifier {
 
   void endSession() {
     session = null;
+    cart.clear();
     notifyListeners();
-    void endSession() {
-  session = null;
-  cart.clear();
-  notifyListeners();
-}
   }
 
   void updateProfile({required String name, required String phone}) {
@@ -58,6 +55,12 @@ class AppStore extends ChangeNotifier {
   // ---------------- Pedidos ----------------
   String nextOrderId() => 'PED-${1000 + orders.length + 1}';
 
+  int get pendingOrdersCount => orders
+      .where((o) =>
+          o.status == OrderStatus.requested ||
+          o.status == OrderStatus.verification)
+      .length;
+
   void addOrder(Order order) {
     orders.insert(0, order);
     notifyListeners();
@@ -69,9 +72,8 @@ class AppStore extends ChangeNotifier {
     if (status == OrderStatus.partial && paid != null) order.paid = paid;
     notifyListeners();
   }
-    // ---------------- Carrito ----------------
-  final List<CartItem> cart = [];
 
+  // ---------------- Carrito ----------------
   int get cartCount => cart.fold<int>(0, (s, i) => s + i.quantity);
   int get cartTotal => cart.fold<int>(0, (s, i) => s + i.subtotal);
 
@@ -134,9 +136,19 @@ class AppStore extends ChangeNotifier {
         clientDoc: '1.037.482.910',
         createdAt: ago(40),
         items: const [
-          PlanItem(name: 'Chaqueta Utility Tech', size: 'M', color: 'Negro', quantity: 1, unitPrice: 189000),
+          PlanItem(
+            name: 'Chaqueta Utility Tech',
+            size: 'M',
+            color: 'Negro',
+            quantity: 1,
+            unitPrice: 189000,
+          ),
         ],
-        abonos: [Abono(ago(40), 20000), Abono(ago(25), 60000), Abono(ago(10), 50000)],
+        abonos: [
+          Abono(ago(40), 20000),
+          Abono(ago(25), 60000),
+          Abono(ago(10), 50000),
+        ],
       ),
       PlanSepare(
         id: 'PS-002',
@@ -144,7 +156,13 @@ class AppStore extends ChangeNotifier {
         clientDoc: '98.765.432',
         createdAt: ago(12),
         items: const [
-          PlanItem(name: 'Jean Slim Fit', size: '32', color: 'Azul', quantity: 2, unitPrice: 129000),
+          PlanItem(
+            name: 'Jean Slim Fit',
+            size: '32',
+            color: 'Azul',
+            quantity: 2,
+            unitPrice: 129000,
+          ),
         ],
         abonos: [Abono(ago(12), 40000)],
       ),
@@ -154,20 +172,37 @@ class AppStore extends ChangeNotifier {
         clientDoc: '1.152.334.881',
         createdAt: ago(55),
         items: const [
-          PlanItem(name: 'Vestido Lino Verde', size: 'S', color: 'Verde', quantity: 1, unitPrice: 159000),
+          PlanItem(
+            name: 'Vestido Lino Verde',
+            size: 'S',
+            color: 'Verde',
+            quantity: 1,
+            unitPrice: 159000,
+          ),
         ],
-        abonos: [Abono(ago(55), 20000), Abono(ago(30), 30000)],
+        abonos: [
+          Abono(ago(55), 20000),
+          Abono(ago(30), 30000),
+        ],
       ),
       PlanSepare(
         id: 'PS-004',
-        clientName: 'Andrés Felipe Mora',
-        clientDoc: '71.335.209',
+        clientName: 'Andrés Moreno',
+        clientDoc: '1.305.778.220',
         createdAt: ago(20),
         items: const [
-          PlanItem(name: 'Buso Canguro Classic', size: 'L', color: 'Gris', quantity: 1, unitPrice: 119000),
-          PlanItem(name: 'Camisa Oxford Beige', size: 'M', color: 'Beige', quantity: 1, unitPrice: 99000),
+          PlanItem(
+            name: 'Camisa Oxford Beige',
+            size: 'M',
+            color: 'Beige',
+            quantity: 1,
+            unitPrice: 99000,
+          ),
         ],
-        abonos: [Abono(ago(20), 40000), Abono(ago(8), 80000)],
+        abonos: [
+          Abono(ago(20), 40000),
+          Abono(ago(8), 80000),
+        ],
       ),
     ]);
 
@@ -178,9 +213,18 @@ class AppStore extends ChangeNotifier {
       createdAt: ago(65),
       status: PlanStatus.cancelled,
       items: const [
-        PlanItem(name: 'Pantalón Cargo Minimal', size: '30', color: 'Gris', quantity: 1, unitPrice: 139000),
+        PlanItem(
+          name: 'Pantalón Cargo Minimal',
+          size: '30',
+          color: 'Gris',
+          quantity: 1,
+          unitPrice: 139000,
+        ),
       ],
-      abonos: [Abono(ago(65), 20000), Abono(ago(50), 30000)],
+      abonos: [
+        Abono(ago(65), 20000),
+        Abono(ago(50), 30000),
+      ],
     );
     cancelled.annulNote = cancelled.annulOutcome;
     plans.add(cancelled);
@@ -193,7 +237,13 @@ class AppStore extends ChangeNotifier {
         channel: 'Web',
         createdAt: ago(1),
         items: const [
-          OrderItem(name: 'Camisa Oxford Beige', size: 'M', color: 'Beige', quantity: 2, unitPrice: 99000),
+          OrderItem(
+            name: 'Camisa Oxford Beige',
+            size: 'M',
+            color: 'Beige',
+            quantity: 2,
+            unitPrice: 99000,
+          ),
         ],
       ),
       Order(
@@ -205,8 +255,20 @@ class AppStore extends ChangeNotifier {
         paid: 100000,
         status: OrderStatus.partial,
         items: const [
-          OrderItem(name: 'Jean Slim Fit', size: '32', color: 'Azul', quantity: 1, unitPrice: 129000),
-          OrderItem(name: 'Camiseta Básica Blanca', size: 'M', color: 'Blanco', quantity: 2, unitPrice: 45000),
+          OrderItem(
+            name: 'Jean Slim Fit',
+            size: '32',
+            color: 'Azul',
+            quantity: 1,
+            unitPrice: 129000,
+          ),
+          OrderItem(
+            name: 'Camiseta Básica Blanca',
+            size: 'M',
+            color: 'Blanco',
+            quantity: 2,
+            unitPrice: 45000,
+          ),
         ],
       ),
       Order(
@@ -218,7 +280,13 @@ class AppStore extends ChangeNotifier {
         paid: 189000,
         status: OrderStatus.paid,
         items: const [
-          OrderItem(name: 'Chaqueta Utility Tech', size: 'M', color: 'Negro', quantity: 1, unitPrice: 189000),
+          OrderItem(
+            name: 'Chaqueta Utility Tech',
+            size: 'M',
+            color: 'Negro',
+            quantity: 1,
+            unitPrice: 189000,
+          ),
         ],
       ),
       Order(
@@ -227,8 +295,15 @@ class AppStore extends ChangeNotifier {
         clientEmail: 'santiago@correo.com',
         channel: 'App móvil',
         createdAt: ago(6),
+        status: OrderStatus.verification,
         items: const [
-          OrderItem(name: 'Buso Canguro Classic', size: 'L', color: 'Gris', quantity: 1, unitPrice: 119000),
+          OrderItem(
+            name: 'Buso Canguro Classic',
+            size: 'L',
+            color: 'Gris',
+            quantity: 1,
+            unitPrice: 119000,
+          ),
         ],
       ),
       Order(
@@ -240,7 +315,13 @@ class AppStore extends ChangeNotifier {
         paid: 159000,
         status: OrderStatus.delivered,
         items: const [
-          OrderItem(name: 'Vestido Lino Verde', size: 'S', color: 'Verde', quantity: 1, unitPrice: 159000),
+          OrderItem(
+            name: 'Vestido Lino Verde',
+            size: 'S',
+            color: 'Verde',
+            quantity: 1,
+            unitPrice: 159000,
+          ),
         ],
       ),
       Order(
@@ -251,7 +332,13 @@ class AppStore extends ChangeNotifier {
         createdAt: ago(12),
         status: OrderStatus.cancelled,
         items: const [
-          OrderItem(name: 'Pantalón Cargo Minimal', size: '32', color: 'Gris', quantity: 1, unitPrice: 139000),
+          OrderItem(
+            name: 'Pantalón Cargo Minimal',
+            size: '32',
+            color: 'Gris',
+            quantity: 1,
+            unitPrice: 139000,
+          ),
         ],
       ),
     ]);
