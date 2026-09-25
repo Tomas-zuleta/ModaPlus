@@ -9,6 +9,7 @@ import '../widgets/app_top_bar.dart';
 import '../widgets/sans_scope.dart';
 import 'dashboard_view.dart';
 import 'orders_view.dart';
+import 'payments_view.dart';
 import 'plan_separe_view.dart';
 import 'profile_view.dart';
 
@@ -25,6 +26,7 @@ class _AdminShellState extends State<AdminShell> {
   static const List<NavItemData> _items = [
     NavItemData(Icons.bar_chart_outlined, Icons.bar_chart, 'DASHBOARD'),
     NavItemData(Icons.bookmark_border, Icons.bookmark, 'SEPARE'),
+    NavItemData(Icons.payments_outlined, Icons.payments, 'ABONOS'),
     NavItemData(Icons.receipt_long_outlined, Icons.receipt_long, 'PEDIDOS'),
     NavItemData(Icons.person_outline, Icons.person, 'PERFIL'),
   ];
@@ -36,6 +38,8 @@ class _AdminShellState extends State<AdminShell> {
       case 1:
         return const PlanSepareView();
       case 2:
+        return const PaymentsView();
+      case 3:
         return const OrdersView();
       default:
         return const ProfileView();
@@ -62,10 +66,7 @@ class _AdminShellState extends State<AdminShell> {
             ),
             body: AnimatedSwitcher(
               duration: const Duration(milliseconds: 250),
-              child: KeyedSubtree(
-                key: ValueKey(_index),
-                child: _page(_index),
-              ),
+              child: KeyedSubtree(key: ValueKey(_index), child: _page(_index)),
             ),
           ),
         );

@@ -46,6 +46,55 @@ class AppStore extends ChangeNotifier {
   int get retainedAmount =>
       plans.where((p) => p.isActive).fold<int>(0, (s, p) => s + p.paid);
 
+  String nextPlanId() {
+    final next =
+        plans.fold<int>(0, (max, plan) {
+          final value = int.tryParse(plan.id.replaceFirst('PS-', '')) ?? 0;
+          return value > max ? value : max;
+        }) +
+        1;
+    return 'PS-${next.toString().padLeft(3, '0')}';
+  }
+
+  PlanSepare createPlan({
+    required String clientName,
+    required String clientDoc,
+    required List<PlanItem> items,
+    int initialPayment = 0,
+  }) {
+    if (clientName.trim().isEmpty || clientDoc.trim().isEmpty) {
+      throw ArgumentError('El cliente y el documento son obligatorios.');
+    }
+    if (items.isEmpty) {
+      throw ArgumentError('El plan debe incluir al menos un producto.');
+    }
+    if (initialPayment < 0) {
+      throw ArgumentError.value(
+        initialPayment,
+        'initialPayment',
+        'No puede ser negativo.',
+      );
+    }
+
+    final plan = PlanSepare(
+      id: nextPlanId(),
+      clientName: clientName.trim(),
+      clientDoc: clientDoc.trim(),
+      createdAt: DateTime.now(),
+      items: List<PlanItem>.unmodifiable(items),
+      abonos: [],
+    );
+    if (initialPayment > 0) plan.addPayment(initialPayment);
+    plans.insert(0, plan);
+    notifyListeners();
+    return plan;
+  }
+
+  void addPlanPayment(PlanSepare plan, int amount) {
+    plan.addPayment(amount);
+    notifyListeners();
+  }
+
   void annulPlan(PlanSepare plan) {
     plan.annulNote = plan.annulOutcome;
     plan.status = PlanStatus.cancelled;
@@ -56,9 +105,11 @@ class AppStore extends ChangeNotifier {
   String nextOrderId() => 'PED-${1000 + orders.length + 1}';
 
   int get pendingOrdersCount => orders
-      .where((o) =>
-          o.status == OrderStatus.requested ||
-          o.status == OrderStatus.verification)
+      .where(
+        (o) =>
+            o.status == OrderStatus.requested ||
+            o.status == OrderStatus.verification,
+      )
       .length;
 
   void addOrder(Order order) {
@@ -81,8 +132,9 @@ class AppStore extends ChangeNotifier {
     final index = cart.indexWhere((c) => c.sameLine(item));
     if (index >= 0) {
       final merged = cart[index].quantity + item.quantity;
-      cart[index].quantity =
-          merged > item.product.stock ? item.product.stock : merged;
+      cart[index].quantity = merged > item.product.stock
+          ? item.product.stock
+          : merged;
     } else {
       cart.add(item);
     }
@@ -91,7 +143,9 @@ class AppStore extends ChangeNotifier {
 
   void setCartQuantity(CartItem item, int quantity) {
     if (quantity < 1) return;
-    item.quantity = quantity > item.product.stock ? item.product.stock : quantity;
+    item.quantity = quantity > item.product.stock
+        ? item.product.stock
+        : quantity;
     notifyListeners();
   }
 
@@ -109,13 +163,15 @@ class AppStore extends ChangeNotifier {
       channel: 'App móvil',
       createdAt: DateTime.now(),
       items: cart
-          .map((c) => OrderItem(
-                name: c.product.name,
-                size: c.size,
-                color: c.color.name,
-                quantity: c.quantity,
-                unitPrice: c.product.price,
-              ))
+          .map(
+            (c) => OrderItem(
+              name: c.product.name,
+              size: c.size,
+              color: c.color.name,
+              quantity: c.quantity,
+              unitPrice: c.product.price,
+            ),
+          )
           .toList(),
     );
     orders.insert(0, order);
@@ -180,10 +236,7 @@ class AppStore extends ChangeNotifier {
             unitPrice: 159000,
           ),
         ],
-        abonos: [
-          Abono(ago(55), 20000),
-          Abono(ago(30), 30000),
-        ],
+        abonos: [Abono(ago(55), 20000), Abono(ago(30), 30000)],
       ),
       PlanSepare(
         id: 'PS-004',
@@ -199,10 +252,7 @@ class AppStore extends ChangeNotifier {
             unitPrice: 99000,
           ),
         ],
-        abonos: [
-          Abono(ago(20), 40000),
-          Abono(ago(8), 80000),
-        ],
+        abonos: [Abono(ago(20), 40000), Abono(ago(8), 59000)],
       ),
     ]);
 
@@ -221,10 +271,7 @@ class AppStore extends ChangeNotifier {
           unitPrice: 139000,
         ),
       ],
-      abonos: [
-        Abono(ago(65), 20000),
-        Abono(ago(50), 30000),
-      ],
+      abonos: [Abono(ago(65), 20000), Abono(ago(50), 30000)],
     );
     cancelled.annulNote = cancelled.annulOutcome;
     plans.add(cancelled);

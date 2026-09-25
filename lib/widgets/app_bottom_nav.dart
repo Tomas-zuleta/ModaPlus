@@ -54,7 +54,9 @@ class AppBottomNav extends StatelessWidget {
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: selected ? AppColors.primary : Colors.transparent,
+                          color: selected
+                              ? AppColors.primary
+                              : Colors.transparent,
                         ),
                         child: Icon(
                           selected ? item.activeIcon : item.icon,
@@ -65,10 +67,11 @@ class AppBottomNav extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         item.label,
+                        maxLines: 1,
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: items.length > 4 ? 8 : 10,
                           fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
+                          letterSpacing: items.length > 4 ? .4 : 1,
                           color: selected ? AppColors.primary : AppColors.slate,
                         ),
                       ),
