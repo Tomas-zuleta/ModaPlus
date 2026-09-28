@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
 
-import '../utils/animations.dart';
 import '../utils/validators.dart';
 import 'auth_card.dart';
 import 'auth_header.dart';
 import 'auth_text_field.dart';
+import 'password_strength_indicator.dart';
 import 'primary_button.dart';
 
 class RegisterForm extends StatefulWidget {
   final bool isLoading;
-  final void Function(String name, String email, String password) onSubmit;
+  final void Function({
+    required String nombres,
+    required String apellidos,
+    required String identificacion,
+    required String telefono,
+    required String email,
+    required String password,
+  }) onSubmit;
 
   const RegisterForm({
     super.key,
@@ -23,14 +30,20 @@ class RegisterForm extends StatefulWidget {
 
 class _RegisterFormState extends State<RegisterForm> {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
+  final _nombresCtrl = TextEditingController();
+  final _apellidosCtrl = TextEditingController();
+  final _docCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
+    _nombresCtrl.dispose();
+    _apellidosCtrl.dispose();
+    _docCtrl.dispose();
+    _phoneCtrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _confirmCtrl.dispose();
@@ -40,12 +53,18 @@ class _RegisterFormState extends State<RegisterForm> {
   void _submit() {
     if (_formKey.currentState!.validate()) {
       widget.onSubmit(
-        _nameCtrl.text.trim(),
-        _emailCtrl.text.trim(),
-        _passCtrl.text,
+        nombres: _nombresCtrl.text.trim(),
+        apellidos: _apellidosCtrl.text.trim(),
+        identificacion: _docCtrl.text.trim(),
+        telefono: _phoneCtrl.text.trim(),
+        email: _emailCtrl.text.trim(),
+        password: _passCtrl.text,
       );
     }
   }
+
+  String? _required(String? v, String message) =>
+      (v == null || v.trim().isEmpty) ? message : null;
 
   @override
   Widget build(BuildContext context) {
@@ -58,13 +77,36 @@ class _RegisterFormState extends State<RegisterForm> {
             const AuthHeader(
               title: 'Crear Cuenta',
               subtitle: 'Regístrate para comenzar a comprar.',
-            ).stagger(0),
+            ),
             AuthTextField(
-              label: 'Nombre completo',
-              hint: 'Tu nombre',
-              controller: _nameCtrl,
-              validator: Validators.name,
-            ).stagger(1),
+              label: 'Nombres',
+              hint: 'Tus nombres',
+              controller: _nombresCtrl,
+              validator: (v) => _required(v, 'Ingresa tus nombres'),
+            ),
+            const SizedBox(height: 20),
+            AuthTextField(
+              label: 'Apellidos',
+              hint: 'Tus apellidos',
+              controller: _apellidosCtrl,
+              validator: (v) => _required(v, 'Ingresa tus apellidos'),
+            ),
+            const SizedBox(height: 20),
+            AuthTextField(
+              label: 'Documento de identidad',
+              hint: '1234567890',
+              controller: _docCtrl,
+              keyboardType: TextInputType.number,
+              validator: (v) => _required(v, 'Ingresa tu documento'),
+            ),
+            const SizedBox(height: 20),
+            AuthTextField(
+              label: 'Teléfono',
+              hint: '3001234567',
+              controller: _phoneCtrl,
+              keyboardType: TextInputType.phone,
+              validator: (v) => _required(v, 'Ingresa tu teléfono'),
+            ),
             const SizedBox(height: 20),
             AuthTextField(
               label: 'Correo electrónico',
@@ -72,7 +114,7 @@ class _RegisterFormState extends State<RegisterForm> {
               controller: _emailCtrl,
               keyboardType: TextInputType.emailAddress,
               validator: Validators.email,
-            ).stagger(2),
+            ),
             const SizedBox(height: 20),
             AuthTextField(
               label: 'Contraseña',
@@ -80,7 +122,9 @@ class _RegisterFormState extends State<RegisterForm> {
               controller: _passCtrl,
               isPassword: true,
               validator: Validators.password,
-            ).stagger(3),
+              onChanged: (_) => setState(() {}),
+            ),
+            PasswordStrengthIndicator(password: _passCtrl.text),
             const SizedBox(height: 20),
             AuthTextField(
               label: 'Confirmar contraseña',
@@ -89,13 +133,13 @@ class _RegisterFormState extends State<RegisterForm> {
               isPassword: true,
               textInputAction: TextInputAction.done,
               validator: Validators.confirmPassword(() => _passCtrl.text),
-            ).stagger(4),
+            ),
             const SizedBox(height: 28),
             PrimaryButton(
               text: 'Registrarme',
               isLoading: widget.isLoading,
               onPressed: _submit,
-            ).stagger(5),
+            ),
           ],
         ),
       ),

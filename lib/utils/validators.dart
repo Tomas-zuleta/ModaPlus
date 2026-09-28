@@ -1,7 +1,6 @@
 class Validators {
   Validators._();
 
-  /// Solo exige que el campo no esté vacío (acepta cualquier valor).
   static String? Function(String?) required(String message) {
     return (value) {
       if (value == null || value.trim().isEmpty) return message;
@@ -18,14 +17,21 @@ class Validators {
     if (value == null || value.trim().isEmpty) {
       return 'Ingresa tu correo electrónico';
     }
-    final regex = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
-    if (!regex.hasMatch(value.trim())) return 'Correo no válido';
+    final regex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    if (!regex.hasMatch(value.trim())) return 'Ingresa un correo válido (ej: usuario@email.com)';
     return null;
   }
 
   static String? password(String? value) {
     if (value == null || value.isEmpty) return 'Ingresa tu contraseña';
-    if (value.length < 6) return 'Mínimo 6 caracteres';
+    if (value.length < 8) return 'Mínimo 8 caracteres';
+    if (!value.contains(RegExp(r'[A-Z]'))) return 'Debe tener al menos una mayúscula';
+    if (!value.contains(RegExp(r'[0-9]'))) return 'Debe tener al menos un número';
+    final specialChars = '!@#\$%^&*';
+    final hasSpecial = specialChars.split('').any((c) => value.contains(c));
+    if (!hasSpecial) {
+      return 'Debe tener al menos un carácter especial (!@#\$%^&*)';
+    }
     return null;
   }
 

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/gestures.dart';
 
 import '../data/catalog_data.dart';
 import '../models/product.dart';
@@ -46,7 +45,6 @@ class _CatalogViewState extends State<CatalogView> {
                 _CategorySection(
                   category: categories[i],
                   products: _byCategory(categories[i]),
-                  onSeeMore: () => setState(() => _category = categories[i]),
                 ).stagger(i > 5 ? 5 : i + 1),
             ],
           ),
@@ -136,12 +134,10 @@ class _CatalogViewState extends State<CatalogView> {
 class _CategorySection extends StatelessWidget {
   final String category;
   final List<Product> products;
-  final VoidCallback onSeeMore;
 
   const _CategorySection({
     required this.category,
     required this.products,
-    required this.onSeeMore,
   });
 
   static const double _cardWidth = 150;
@@ -187,18 +183,10 @@ class _CategorySection extends StatelessWidget {
               physics: const BouncingScrollPhysics(
                 parent: AlwaysScrollableScrollPhysics(),
               ),
-              dragStartBehavior: DragStartBehavior.down,
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              itemCount: preview.length + 1,
+              itemCount: preview.length,
               separatorBuilder: (_, _) => const SizedBox(width: 14),
               itemBuilder: (context, i) {
-                if (i == preview.length) {
-                  return _SeeMoreCard(
-                    width: _cardWidth,
-                    height: _cardHeight,
-                    onTap: onSeeMore,
-                  );
-                }
                 return SizedBox(
                   width: _cardWidth,
                   height: _cardHeight,
@@ -213,56 +201,3 @@ class _CategorySection extends StatelessWidget {
   }
 }
 
-class _SeeMoreCard extends StatelessWidget {
-  final double width;
-  final double height;
-  final VoidCallback onTap;
-
-  const _SeeMoreCard({
-    required this.width,
-    required this.height,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: width,
-        height: height,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF1F4D3A), Color(0xFF3B8B67)],
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
-              ),
-              child: const Icon(Icons.arrow_forward, color: AppColors.primary, size: 20),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'VER MÁS',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

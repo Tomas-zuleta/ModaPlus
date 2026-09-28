@@ -10,6 +10,7 @@ class AuthTextField extends StatefulWidget {
   final TextInputType keyboardType;
   final TextInputAction textInputAction;
   final String? Function(String?)? validator;
+  final void Function(String)? onChanged;
 
   const AuthTextField({
     super.key,
@@ -20,6 +21,7 @@ class AuthTextField extends StatefulWidget {
     this.keyboardType = TextInputType.text,
     this.textInputAction = TextInputAction.next,
     this.validator,
+    this.onChanged,
   });
 
   @override
@@ -53,6 +55,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
           keyboardType: widget.keyboardType,
           textInputAction: widget.textInputAction,
           validator: widget.validator,
+          onChanged: widget.onChanged,
           cursorColor: AppColors.primary,
           style: const TextStyle(fontSize: 16, color: AppColors.textDark),
           decoration: InputDecoration(
