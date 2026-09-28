@@ -18,7 +18,8 @@ class ForgotPasswordPage extends StatefulWidget {
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   int _step = 0;
-  String _email = '';
+  String _telefono = '';
+  String _codigoGenerado = '';
 
   Future<void> _goTo(int step) async {
     await Future.delayed(const Duration(milliseconds: 800));
@@ -32,18 +33,30 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         return _StepForm(
           key: const ValueKey(0),
           title: 'Recuperar contraseña',
-          subtitle: 'Te enviaremos un código para restablecerla.',
-          buttonText: 'Enviar código',
+          subtitle: 'Ingresa tu documento y teléfono registrado para enviarte un código de verificación.',
+          buttonText: 'Enviar SMS',
           fields: [
             _Field(
-              label: 'Correo electrónico',
-              hint: 'tu@email.com',
-              keyboard: TextInputType.emailAddress,
-              validator: Validators.email,
+              label: 'Documento de identidad',
+              hint: '1234567890',
+              keyboard: TextInputType.number,
+              validator: (v) => (v != null && v.trim().length >= 6)
+                  ? null
+                  : 'Ingresa un documento válido',
+            ),
+            _Field(
+              label: 'Teléfono',
+              hint: '3001234567',
+              keyboard: TextInputType.phone,
+              validator: (v) => (v != null && v.trim().length >= 10)
+                  ? null
+                  : 'Ingresa un teléfono válido (10 dígitos)',
             ),
           ],
           onSubmit: (values) async {
-            _email = values[0].trim();
+            _telefono = values[1].trim();
+            // Generar código de 6 dígitos
+            _codigoGenerado = DateTime.now().millisecondsSinceEpoch.toString().substring(5, 11);
             await _goTo(1);
           },
         );
@@ -51,12 +64,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         return _StepForm(
           key: const ValueKey(1),
           title: 'Verifica tu código',
-          subtitle: 'Ingresa el código de 6 dígitos enviado a $_email.\n'
-              '(Demo: sirve cualquier código de 6 dígitos)',
+          subtitle: 'Ingresa el código de 6 dígitos enviado por SMS al teléfono $_telefono.\n'
+              '(Demo: el código es $_codigoGenerado)',
           buttonText: 'Verificar código',
           fields: [
             _Field(
-              label: 'Código',
+              label: 'Código de verificación',
               hint: '123456',
               keyboard: TextInputType.number,
               validator: (v) => (v != null && RegExp(r'^\d{6}$').hasMatch(v.trim()))
@@ -70,7 +83,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         return _StepForm(
           key: const ValueKey(2),
           title: 'Nueva contraseña',
-          subtitle: 'Crea una contraseña segura para tu cuenta.',
+          subtitle: 'Crea una contraseña segura para tu cuenta.\n'
+              'Debe tener mínimo 8 caracteres, una mayúscula, un número y un carácter especial.',
           buttonText: 'Restaurar contraseña',
           confirmLast: true,
           fields: [
@@ -84,7 +98,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               label: 'Confirmar contraseña',
               hint: '••••••••',
               isPassword: true,
-              validator: Validators.password,
+              validator: Validators.confirmPassword(() => _codigoGenerado),
             ),
           ],
           onSubmit: (values) => _goTo(3),

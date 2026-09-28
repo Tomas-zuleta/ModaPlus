@@ -7,9 +7,12 @@ environment:
   sdk: ^3.12.2
 
 dependencies:
+  file_picker: ^13.1.0
   flutter:
     sdk: flutter
   flutter_animate: ^4.5.2
+  image_picker: ^1.2.1
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:
