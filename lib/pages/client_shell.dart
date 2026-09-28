@@ -11,6 +11,7 @@ import 'cart_page.dart';
 import 'catalog_view.dart';
 import 'explore_view.dart';
 import 'orders_view.dart';
+import 'plan_separe_view.dart';
 import 'profile_view.dart';
 
 class ClientShell extends StatefulWidget {
@@ -28,6 +29,7 @@ class _ClientShellState extends State<ClientShell> {
     NavItemData(Icons.explore_outlined, Icons.explore, 'EXPLORAR'),
     NavItemData(Icons.grid_view_outlined, Icons.grid_view, 'CATÁLOGO'),
     NavItemData(Icons.receipt_long_outlined, Icons.receipt_long, 'PEDIDOS'),
+    NavItemData(Icons.bookmark_border, Icons.bookmark, 'PLANES'),
     NavItemData(Icons.person_outline, Icons.person, 'PERFIL'),
   ];
 
@@ -43,12 +45,11 @@ class _ClientShellState extends State<ClientShell> {
       case 0:
         return ExploreView(onOpenCategory: _openCategory);
       case 1:
-        return CatalogView(
-          key: ValueKey('catalog-$_category'),
-          initialCategory: _category,
-        );
+        return CatalogView(key: ValueKey('catalog-$_category'), initialCategory: _category);
       case 2:
         return const OrdersView(onlyMine: true);
+      case 3:
+        return const PlanSepareView(onlyMine: true);
       default:
         return const ProfileView();
     }
@@ -66,14 +67,9 @@ class _ClientShellState extends State<ClientShell> {
             backgroundColor: AppColors.dashboardBg,
             appBar: AppTopBar(
               cartCount: store.cartCount,
-              onCartTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const CartPage()),
-              ),
+              onCartTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CartPage())),
             ),
-            drawer: AppDrawer(
-              name: store.session?.name ?? 'Cliente',
-              role: UserRole.client,
-            ),
+            drawer: AppDrawer(name: store.session?.name ?? 'Cliente', role: UserRole.client),
             bottomNavigationBar: AppBottomNav(
               items: _items,
               currentIndex: _index,
@@ -84,10 +80,7 @@ class _ClientShellState extends State<ClientShell> {
             ),
             body: AnimatedSwitcher(
               duration: const Duration(milliseconds: 250),
-              child: KeyedSubtree(
-                key: ValueKey('$_index-$_category'),
-                child: _page(),
-              ),
+              child: KeyedSubtree(key: ValueKey('$_index-$_category'), child: _page()),
             ),
           ),
         );

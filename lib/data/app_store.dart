@@ -7,9 +7,7 @@ import '../models/user_role.dart';
 import '../models/user_session.dart';
 
 class AppStore extends ChangeNotifier {
-  AppStore._() {
-    _seed();
-  }
+  AppStore._();
 
   static final AppStore instance = AppStore._();
 
@@ -18,13 +16,39 @@ class AppStore extends ChangeNotifier {
   final List<Order> orders = [];
   final List<CartItem> cart = [];
 
-  // ---------------- Sesión ----------------
   void startSession({
     required String name,
     required String email,
     required UserRole role,
   }) {
-    session = UserSession(name: name, email: email, role: role);
+    final parts = name.trim().split(RegExp(r'\s+'));
+    session = UserSession(
+      nombres: parts.isEmpty ? name : parts.first,
+      apellidos: parts.length > 1 ? parts.skip(1).join(' ') : '',
+      email: email,
+      role: role,
+      fechaCreacion: DateTime.now(),
+    );
+    notifyListeners();
+  }
+
+  void registerSession({
+    required String nombres,
+    required String apellidos,
+    required String identificacion,
+    required String phone,
+    required String email,
+    required UserRole role,
+  }) {
+    session = UserSession(
+      nombres: nombres,
+      apellidos: apellidos,
+      identificacion: identificacion,
+      phone: phone,
+      email: email,
+      role: role,
+      fechaCreacion: DateTime.now(),
+    );
     notifyListeners();
   }
 
@@ -34,26 +58,35 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateProfile({required String name, required String phone}) {
-    if (session == null) return;
-    session = session!.copyWith(name: name, phone: phone);
+  void updateProfile({
+    required String nombres,
+    required String apellidos,
+    required String phone,
+    required String direccion,
+    String? identificacion,
+  }) {
+    final current = session;
+    if (current == null) return;
+    session = current.copyWith(
+      nombres: nombres,
+      apellidos: apellidos,
+      phone: phone,
+      direccion: direccion,
+      identificacion: identificacion,
+    );
     notifyListeners();
   }
 
-  // ---------------- Plan separe ----------------
-  int get activePlansCount => plans.where((p) => p.isActive).length;
-
+  int get activePlansCount => plans.where((plan) => plan.isActive).length;
   int get retainedAmount =>
-      plans.where((p) => p.isActive).fold<int>(0, (s, p) => s + p.paid);
+      plans.where((plan) => plan.isActive).fold(0, (sum, plan) => sum + plan.paid);
 
   String nextPlanId() {
-    final next =
-        plans.fold<int>(0, (max, plan) {
-          final value = int.tryParse(plan.id.replaceFirst('PS-', '')) ?? 0;
-          return value > max ? value : max;
-        }) +
-        1;
-    return 'PS-${next.toString().padLeft(3, '0')}';
+    final highest = plans.fold<int>(0, (max, plan) {
+      final number = int.tryParse(plan.id.replaceFirst('PS-', '')) ?? 0;
+      return number > max ? number : max;
+    });
+    return 'PS-${(highest + 1).toString().padLeft(3, '0')}';
   }
 
   PlanSepare createPlan({
@@ -61,37 +94,84 @@ class AppStore extends ChangeNotifier {
     required String clientDoc,
     required List<PlanItem> items,
     int initialPayment = 0,
+    String clientEmail = '',
   }) {
-    if (clientName.trim().isEmpty || clientDoc.trim().isEmpty) {
-      throw ArgumentError('El cliente y el documento son obligatorios.');
+    if (clientName.trim().isEmpty || clientDoc.trim().isEmpty || items.isEmpty) {
+      throw ArgumentError('Completa los datos del cliente y agrega productos.');
     }
-    if (items.isEmpty) {
-      throw ArgumentError('El plan debe incluir al menos un producto.');
-    }
-    if (initialPayment < 0) {
-      throw ArgumentError.value(
-        initialPayment,
-        'initialPayment',
-        'No puede ser negativo.',
-      );
+    final total = items.fold<int>(0, (sum, item) => sum + item.subtotal);
+    if (initialPayment < 0 || initialPayment > total) {
+      throw ArgumentError.value(initialPayment, 'initialPayment');
     }
 
+    final now = DateTime.now();
     final plan = PlanSepare(
       id: nextPlanId(),
       clientName: clientName.trim(),
       clientDoc: clientDoc.trim(),
-      createdAt: DateTime.now(),
+      clientEmail: clientEmail,
+      createdAt: now,
       items: List<PlanItem>.unmodifiable(items),
-      abonos: [],
+      abonos: initialPayment == 0
+          ? []
+          : [Abono(now, initialPayment)],
     );
-    if (initialPayment > 0) plan.addPayment(initialPayment);
     plans.insert(0, plan);
     notifyListeners();
     return plan;
   }
 
-  void addPlanPayment(PlanSepare plan, int amount) {
-    plan.addPayment(amount);
+  PlanSepare createPlanFromCart({
+    required int initialDeposit,
+    required String method,
+    required String clientDoc,
+    Uint8List? voucherBytes,
+  }) {
+    if (cart.isEmpty) throw StateError('El carrito está vacío.');
+    final plan = createPlan(
+      clientName: session?.name ?? 'Cliente',
+      clientDoc: clientDoc,
+      clientEmail: session?.email ?? '',
+      items: cart
+          .map(
+            (item) => PlanItem(
+              name: item.product.name,
+              size: item.variant.talla.nombre,
+              color: item.variant.color.nombre,
+              quantity: item.quantity,
+              unitPrice: item.variant.precioVenta,
+            ),
+          )
+          .toList(),
+      initialPayment: initialDeposit,
+    );
+    if (initialDeposit > 0 && plan.abonos.isNotEmpty) {
+      final payment = plan.abonos.first;
+      plan.abonos[0] = Abono(
+        payment.date,
+        payment.amount,
+        method: method,
+        voucherBytes: voucherBytes,
+      );
+    }
+    cart.clear();
+    notifyListeners();
+    return plan;
+  }
+
+  void addAbono(
+    PlanSepare plan,
+    int amount, {
+    String method = 'Efectivo',
+    Uint8List? voucherBytes,
+  }) {
+    plan.addPayment(amount, method: method, voucherBytes: voucherBytes);
+    notifyListeners();
+  }
+
+  void removeAbono(PlanSepare plan, Abono abono) {
+    plan.abonos.remove(abono);
+    if (plan.status == PlanStatus.completed) plan.status = PlanStatus.active;
     notifyListeners();
   }
 
@@ -101,14 +181,24 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ---------------- Pedidos ----------------
+  List<MapEntry<PlanSepare, Abono>> get allAbonos {
+    final result = <MapEntry<PlanSepare, Abono>>[];
+    for (final plan in plans) {
+      for (final abono in plan.abonos) {
+        result.add(MapEntry(plan, abono));
+      }
+    }
+    result.sort((a, b) => b.value.date.compareTo(a.value.date));
+    return result;
+  }
+
   String nextOrderId() => 'PED-${1000 + orders.length + 1}';
 
   int get pendingOrdersCount => orders
       .where(
-        (o) =>
-            o.status == OrderStatus.requested ||
-            o.status == OrderStatus.verification,
+        (order) =>
+            order.status == OrderStatus.requested ||
+            order.status == OrderStatus.verification,
       )
       .length;
 
@@ -124,28 +214,37 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ---------------- Carrito ----------------
-  int get cartCount => cart.fold<int>(0, (s, i) => s + i.quantity);
-  int get cartTotal => cart.fold<int>(0, (s, i) => s + i.subtotal);
+  void attachVoucher(
+    Order order, {
+    required String paymentAccountId,
+    required Uint8List bytes,
+    required String fileName,
+  }) {
+    order.paymentAccountId = paymentAccountId;
+    order.voucherBytes = bytes;
+    order.voucherFileName = fileName;
+    order.voucherSentAt = DateTime.now();
+    notifyListeners();
+  }
+
+  int get cartCount => cart.fold<int>(0, (sum, item) => sum + item.quantity);
+  int get cartTotal => cart.fold<int>(0, (sum, item) => sum + item.subtotal);
 
   void addToCart(CartItem item) {
-    final index = cart.indexWhere((c) => c.sameLine(item));
-    if (index >= 0) {
-      final merged = cart[index].quantity + item.quantity;
-      cart[index].quantity = merged > item.product.stock
-          ? item.product.stock
-          : merged;
-    } else {
+    final index = cart.indexWhere((current) => current.sameLine(item));
+    if (index == -1) {
       cart.add(item);
+    } else {
+      final max = item.variant.stockActual;
+      cart[index].quantity =
+          (cart[index].quantity + item.quantity).clamp(1, max);
     }
     notifyListeners();
   }
 
   void setCartQuantity(CartItem item, int quantity) {
     if (quantity < 1) return;
-    item.quantity = quantity > item.product.stock
-        ? item.product.stock
-        : quantity;
+    item.quantity = quantity.clamp(1, item.variant.stockActual);
     notifyListeners();
   }
 
@@ -154,240 +253,41 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Convierte el carrito en un pedido (queda visible para el administrador).
-  Order placeOrder() {
+  Order placeOrder({
+    String method = 'Pago en tienda',
+    String? accountId,
+    Uint8List? voucherBytes,
+  }) {
+    if (cart.isEmpty) throw StateError('El carrito está vacío.');
+    final now = DateTime.now();
+    final items = cart
+        .map(
+          (item) => OrderItem(
+            name: item.product.name,
+            size: item.variant.talla.nombre,
+            color: item.variant.color.nombre,
+            quantity: item.quantity,
+            unitPrice: item.variant.precioVenta,
+          ),
+        )
+        .toList();
     final order = Order(
       id: nextOrderId(),
       clientName: session?.name ?? 'Cliente',
       clientEmail: session?.email ?? '',
       channel: 'App móvil',
-      createdAt: DateTime.now(),
-      items: cart
-          .map(
-            (c) => OrderItem(
-              name: c.product.name,
-              size: c.size,
-              color: c.color.name,
-              quantity: c.quantity,
-              unitPrice: c.product.price,
-            ),
-          )
-          .toList(),
+      createdAt: now,
+      items: items,
+      paid: items.fold<int>(0, (sum, item) => sum + item.subtotal),
+      status: OrderStatus.paid,
+      paymentMethod: method,
+      paymentAccountId: accountId,
+      voucherBytes: voucherBytes,
+      voucherSentAt: voucherBytes == null ? null : now,
     );
     orders.insert(0, order);
     cart.clear();
     notifyListeners();
     return order;
-  }
-
-  // ---------------- Datos de ejemplo ----------------
-  void _seed() {
-    final now = DateTime.now();
-    DateTime ago(int days) => now.subtract(Duration(days: days));
-
-    plans.addAll([
-      PlanSepare(
-        id: 'PS-001',
-        clientName: 'María Fernanda Ríos',
-        clientDoc: '1.037.482.910',
-        createdAt: ago(40),
-        items: const [
-          PlanItem(
-            name: 'Chaqueta Utility Tech',
-            size: 'M',
-            color: 'Negro',
-            quantity: 1,
-            unitPrice: 189000,
-          ),
-        ],
-        abonos: [
-          Abono(ago(40), 20000),
-          Abono(ago(25), 60000),
-          Abono(ago(10), 50000),
-        ],
-      ),
-      PlanSepare(
-        id: 'PS-002',
-        clientName: 'Carlos Andrés Zapata',
-        clientDoc: '98.765.432',
-        createdAt: ago(12),
-        items: const [
-          PlanItem(
-            name: 'Jean Slim Fit',
-            size: '32',
-            color: 'Azul',
-            quantity: 2,
-            unitPrice: 129000,
-          ),
-        ],
-        abonos: [Abono(ago(12), 40000)],
-      ),
-      PlanSepare(
-        id: 'PS-003',
-        clientName: 'Laura Gómez',
-        clientDoc: '1.152.334.881',
-        createdAt: ago(55),
-        items: const [
-          PlanItem(
-            name: 'Vestido Lino Verde',
-            size: 'S',
-            color: 'Verde',
-            quantity: 1,
-            unitPrice: 159000,
-          ),
-        ],
-        abonos: [Abono(ago(55), 20000), Abono(ago(30), 30000)],
-      ),
-      PlanSepare(
-        id: 'PS-004',
-        clientName: 'Andrés Moreno',
-        clientDoc: '1.305.778.220',
-        createdAt: ago(20),
-        items: const [
-          PlanItem(
-            name: 'Camisa Oxford Beige',
-            size: 'M',
-            color: 'Beige',
-            quantity: 1,
-            unitPrice: 99000,
-          ),
-        ],
-        abonos: [Abono(ago(20), 40000), Abono(ago(8), 59000)],
-      ),
-    ]);
-
-    final cancelled = PlanSepare(
-      id: 'PS-005',
-      clientName: 'Sofía Herrera',
-      clientDoc: '1.020.445.671',
-      createdAt: ago(65),
-      status: PlanStatus.cancelled,
-      items: const [
-        PlanItem(
-          name: 'Pantalón Cargo Minimal',
-          size: '30',
-          color: 'Gris',
-          quantity: 1,
-          unitPrice: 139000,
-        ),
-      ],
-      abonos: [Abono(ago(65), 20000), Abono(ago(50), 30000)],
-    );
-    cancelled.annulNote = cancelled.annulOutcome;
-    plans.add(cancelled);
-
-    orders.addAll([
-      Order(
-        id: 'PED-1001',
-        clientName: 'Valentina Ospina',
-        clientEmail: 'valentina@correo.com',
-        channel: 'Web',
-        createdAt: ago(1),
-        items: const [
-          OrderItem(
-            name: 'Camisa Oxford Beige',
-            size: 'M',
-            color: 'Beige',
-            quantity: 2,
-            unitPrice: 99000,
-          ),
-        ],
-      ),
-      Order(
-        id: 'PED-1002',
-        clientName: 'Juan Pablo Cardona',
-        clientEmail: 'juan@correo.com',
-        channel: 'App móvil',
-        createdAt: ago(3),
-        paid: 100000,
-        status: OrderStatus.partial,
-        items: const [
-          OrderItem(
-            name: 'Jean Slim Fit',
-            size: '32',
-            color: 'Azul',
-            quantity: 1,
-            unitPrice: 129000,
-          ),
-          OrderItem(
-            name: 'Camiseta Básica Blanca',
-            size: 'M',
-            color: 'Blanco',
-            quantity: 2,
-            unitPrice: 45000,
-          ),
-        ],
-      ),
-      Order(
-        id: 'PED-1003',
-        clientName: 'Daniela Restrepo',
-        clientEmail: 'daniela@correo.com',
-        channel: 'Web',
-        createdAt: ago(2),
-        paid: 189000,
-        status: OrderStatus.paid,
-        items: const [
-          OrderItem(
-            name: 'Chaqueta Utility Tech',
-            size: 'M',
-            color: 'Negro',
-            quantity: 1,
-            unitPrice: 189000,
-          ),
-        ],
-      ),
-      Order(
-        id: 'PED-1004',
-        clientName: 'Santiago Builes',
-        clientEmail: 'santiago@correo.com',
-        channel: 'App móvil',
-        createdAt: ago(6),
-        status: OrderStatus.verification,
-        items: const [
-          OrderItem(
-            name: 'Buso Canguro Classic',
-            size: 'L',
-            color: 'Gris',
-            quantity: 1,
-            unitPrice: 119000,
-          ),
-        ],
-      ),
-      Order(
-        id: 'PED-1005',
-        clientName: 'Camila Torres',
-        clientEmail: 'camila@correo.com',
-        channel: 'Web',
-        createdAt: ago(9),
-        paid: 159000,
-        status: OrderStatus.delivered,
-        items: const [
-          OrderItem(
-            name: 'Vestido Lino Verde',
-            size: 'S',
-            color: 'Verde',
-            quantity: 1,
-            unitPrice: 159000,
-          ),
-        ],
-      ),
-      Order(
-        id: 'PED-1006',
-        clientName: 'Mateo Arango',
-        clientEmail: 'mateo@correo.com',
-        channel: 'Web',
-        createdAt: ago(12),
-        status: OrderStatus.cancelled,
-        items: const [
-          OrderItem(
-            name: 'Pantalón Cargo Minimal',
-            size: '32',
-            color: 'Gris',
-            quantity: 1,
-            unitPrice: 139000,
-          ),
-        ],
-      ),
-    ]);
   }
 }

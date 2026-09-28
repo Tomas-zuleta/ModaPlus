@@ -7,29 +7,32 @@ import '../utils/app_colors.dart';
 import '../utils/format.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/filter_chips.dart';
-import '../widgets/progress_bar.dart';
+import '../widgets/page_header.dart';
 import '../widgets/primary_button.dart';
+import '../widgets/progress_bar.dart';
 import '../widgets/status_chip.dart';
+import 'abonos_view.dart';
 import 'plan_separe_create_page.dart';
 import 'plan_separe_detail_page.dart';
 
-enum PlanFilter { all, active, completed, cancelled }
+enum _PlanFilter { all, active, closed }
 
 class PlanSepareView extends StatefulWidget {
-  const PlanSepareView({super.key});
+  final bool onlyMine;
+
+  const PlanSepareView({super.key, this.onlyMine = false});
 
   @override
   State<PlanSepareView> createState() => _PlanSepareViewState();
 }
 
 class _PlanSepareViewState extends State<PlanSepareView> {
-  PlanFilter _filter = PlanFilter.all;
+  _PlanFilter _filter = _PlanFilter.all;
 
-  String _label(PlanFilter f) => switch (f) {
-    PlanFilter.all => 'Todos',
-    PlanFilter.active => 'Activos',
-    PlanFilter.completed => 'Pagados',
-    PlanFilter.cancelled => 'Anulados',
+  String _label(_PlanFilter filter) => switch (filter) {
+    _PlanFilter.all => 'Todos',
+    _PlanFilter.active => 'Activos',
+    _PlanFilter.closed => 'Finalizados',
   };
 
   @override
@@ -37,83 +40,70 @@ class _PlanSepareViewState extends State<PlanSepareView> {
     return ListenableBuilder(
       listenable: AppStore.instance,
       builder: (context, _) {
-        final plans = AppStore.instance.plans.where((p) {
-          switch (_filter) {
-            case PlanFilter.all:
-              return true;
-            case PlanFilter.active:
-              return p.isActive;
-            case PlanFilter.completed:
-              return p.status == PlanStatus.completed;
-            case PlanFilter.cancelled:
-              return p.status == PlanStatus.cancelled;
-          }
+        final email = (AppStore.instance.session?.email ?? '').toLowerCase();
+        final plans = AppStore.instance.plans.where((plan) {
+          final mine = !widget.onlyMine || plan.clientEmail.toLowerCase() == email;
+          final matches = switch (_filter) {
+            _PlanFilter.all => true,
+            _PlanFilter.active => plan.isActive,
+            _PlanFilter.closed => !plan.isActive,
+          };
+          return mine && matches;
         }).toList();
 
         return Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 640),
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
               children: [
-                const Text(
-                  'Plan Separe',
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
-                  ),
+                PageHeader(
+                  title: widget.onlyMine ? 'Mis planes' : 'Plan Separe',
+                  subtitle: widget.onlyMine
+                      ? 'Tus productos apartados'
+                      : 'Reservas realizadas por los clientes',
                 ).stagger(0),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  decoration: const BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(color: AppColors.panelBorder),
+                if (!widget.onlyMine) ...[
+                  const SizedBox(height: 12),
+                  TextButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AbonosView()),
                     ),
+                    icon: const Icon(Icons.receipt_long_outlined),
+                    label: const Text('Ver abonos'),
                   ),
-                  child: const Text(
-                    'Reservas realizadas por los clientes',
-                    style: TextStyle(fontSize: 17, color: AppColors.textDark),
-                  ),
-                ).stagger(1),
-                const SizedBox(height: 20),
-                PrimaryButton(
-                  text: 'Nuevo plan separe',
-                  onPressed: () async {
-                    final plan = await Navigator.of(context).push<PlanSepare>(
+                ],
+                if (widget.onlyMine) ...[
+                  const SizedBox(height: 16),
+                  PrimaryButton(
+                    text: 'Apartar productos del carrito',
+                    onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => const PlanSepareCreatePage(),
                       ),
-                    );
-                    if (plan != null && context.mounted) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => PlanSepareDetailPage(plan: plan),
-                        ),
-                      );
-                    }
-                  },
-                ).stagger(2),
-                const SizedBox(height: 20),
-                FilterChipsRow<PlanFilter>(
-                  values: PlanFilter.values,
+                    ),
+                  ).stagger(1),
+                ],
+                const SizedBox(height: 14),
+                FilterChipsRow<_PlanFilter>(
+                  values: _PlanFilter.values,
                   selected: _filter,
                   labelOf: _label,
-                  onSelected: (f) => setState(() => _filter = f),
-                ).stagger(3),
+                  onSelected: (filter) => setState(() => _filter = filter),
+                ).stagger(2),
                 const SizedBox(height: 16),
                 if (plans.isEmpty)
                   const EmptyState(
                     icon: Icons.bookmark_border,
-                    message: 'No hay planes separe en esta categoría',
+                    message: 'No hay planes en esta categoría',
                   )
                 else
-                  for (int i = 0; i < plans.length; i++)
+                  for (var i = 0; i < plans.length; i++)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _PlanCard(
                         plan: plans[i],
+                        isAdmin: !widget.onlyMine,
                       ).stagger(i > 5 ? 5 : i + 3),
                     ),
               ],
@@ -127,13 +117,17 @@ class _PlanSepareViewState extends State<PlanSepareView> {
 
 class _PlanCard extends StatelessWidget {
   final PlanSepare plan;
-  const _PlanCard({required this.plan});
+  final bool isAdmin;
+
+  const _PlanCard({required this.plan, required this.isAdmin});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => PlanSepareDetailPage(plan: plan)),
+        MaterialPageRoute(
+          builder: (_) => PlanSepareDetailPage(plan: plan, isAdmin: isAdmin),
+        ),
       ),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -146,23 +140,11 @@ class _PlanCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text(
-                  plan.id,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                    color: AppColors.slate,
-                  ),
-                ),
+                Text(plan.id),
                 const Spacer(),
                 StatusChip(
-                  label: plan.status.label,
-                  color: switch (plan.status) {
-                    PlanStatus.active => AppColors.primary,
-                    PlanStatus.completed => AppColors.navy,
-                    PlanStatus.cancelled => AppColors.redAccent,
-                  },
+                  label: plan.isActive ? 'Activo' : 'Finalizado',
+                  color: plan.isActive ? AppColors.primary : AppColors.slate,
                 ),
               ],
             ),
@@ -191,7 +173,7 @@ class _PlanCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Saldo ${formatCop(plan.balance)}',
+                  'Total ${formatCop(plan.total)}',
                   style: const TextStyle(fontSize: 12, color: AppColors.slate),
                 ),
               ],

@@ -1,23 +1,20 @@
 import 'product.dart';
+import 'product_variant.dart';
 
 class CartItem {
   final Product product;
-  final String size;
-  final ProductColor color;
+  final ProductVariant variant;
   int quantity;
 
   CartItem({
     required this.product,
-    required this.size,
-    required this.color,
+    required this.variant,
     required this.quantity,
   });
 
-  int get subtotal => product.price * quantity;
+  int get subtotal => variant.precioVenta * quantity;
 
-  /// Misma línea = mismo producto, talla y color.
+  /// Misma línea = misma variante (mismo producto, talla y color).
   bool sameLine(CartItem other) =>
-      other.product.id == product.id &&
-      other.size == size &&
-      other.color.name == color.name;
+      other.product.id == product.id && other.variant.id == variant.id;
 }

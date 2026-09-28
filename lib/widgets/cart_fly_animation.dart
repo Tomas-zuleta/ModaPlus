@@ -11,8 +11,6 @@ class CartFlyAnimation {
     Duration duration = const Duration(milliseconds: 700),
   }) {
     final overlay = Overlay.of(context, rootOverlay: true);
-    if (overlay == null) return;
-
     final sourceContext = sourceKey.currentContext;
     final targetContext = (targetKey ?? cartTargetKey).currentContext;
 
