@@ -7,9 +7,9 @@ import '../widgets/app_bottom_nav.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/app_top_bar.dart';
 import '../widgets/sans_scope.dart';
+import 'abonos_view.dart';
 import 'dashboard_view.dart';
 import 'orders_view.dart';
-import 'payments_view.dart';
 import 'plan_separe_view.dart';
 import 'profile_view.dart';
 
@@ -38,7 +38,7 @@ class _AdminShellState extends State<AdminShell> {
       case 1:
         return const PlanSepareView();
       case 2:
-        return const PaymentsView();
+        return const AbonosView();
       case 3:
         return const OrdersView();
       default:

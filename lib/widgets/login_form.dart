@@ -6,7 +6,6 @@ import '../utils/validators.dart';
 import 'auth_card.dart';
 import 'auth_header.dart';
 import 'auth_text_field.dart';
-import 'password_strength_indicator.dart';
 import 'primary_button.dart';
 
 class LoginForm extends StatefulWidget {
@@ -70,9 +69,7 @@ class _LoginFormState extends State<LoginForm> {
               isPassword: true,
               textInputAction: TextInputAction.done,
               validator: Validators.password,
-              onChanged: (_) => setState(() {}),
             ).stagger(2),
-            PasswordStrengthIndicator(password: _passCtrl.text).stagger(2),
             const SizedBox(height: 14),
             Align(
               alignment: Alignment.centerRight,

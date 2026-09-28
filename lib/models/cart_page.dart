@@ -11,7 +11,7 @@ import '../widgets/primary_button.dart';
 import '../widgets/product_image.dart';
 import '../widgets/quantity_stepper.dart';
 import '../widgets/sans_scope.dart';
-import 'order_success_page.dart';
+import '../pages/order_success_page.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -23,53 +23,11 @@ class CartPage extends StatefulWidget {
 class _CartPageState extends State<CartPage> {
   bool _sending = false;
 
-  Future<void> _selectPaymentMethod() async {
-    final method = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.white,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: Text(
-                'MÉTODO DE PAGO',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
-                  color: AppColors.slate,
-                ),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.qr_code, color: AppColors.primary),
-              title: const Text('QR'),
-              subtitle: const Text('Paga con código QR en la tienda'),
-              onTap: () => Navigator.pop(ctx, 'QR'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.payments, color: AppColors.primary),
-              title: const Text('Efectivo'),
-              subtitle: const Text('Paga en efectivo en la tienda'),
-              onTap: () => Navigator.pop(ctx, 'Efectivo'),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-    if (method == null || !mounted) return;
-    await _request(method);
-  }
-
-  Future<void> _request(String method) async {
+  Future<void> _request() async {
     setState(() => _sending = true);
     await Future.delayed(const Duration(milliseconds: 900));
     if (!mounted) return;
-    final order = AppStore.instance.placeOrder(method: method);
+    final order = AppStore.instance.placeOrder();
     Navigator.of(context).pushReplacement(
       fadeRoute(OrderSuccessPage(order: order)),
     );
@@ -135,7 +93,7 @@ class _CartPageState extends State<CartPage> {
                           PrimaryButton(
                             text: 'Solicitar pedido',
                             isLoading: _sending,
-                            onPressed: _selectPaymentMethod,
+                            onPressed: _request,
                           ),
                         ],
                       ),
@@ -166,7 +124,8 @@ class _CartPageState extends State<CartPage> {
                       child: ListView.separated(
                         padding: const EdgeInsets.all(24),
                         itemCount: cart.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 12),
+                        separatorBuilder: (context, _) =>
+                          const SizedBox(height: 12),
                         itemBuilder: (context, i) => _CartRow(item: cart[i]),
                       ),
                     ),

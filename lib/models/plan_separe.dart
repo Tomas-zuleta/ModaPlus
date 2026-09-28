@@ -1,14 +1,8 @@
+import 'dart:typed_data';
+
 import '../utils/format.dart';
 
 enum PlanStatus { active, completed, cancelled }
-
-extension PlanStatusLabel on PlanStatus {
-  String get label => switch (this) {
-    PlanStatus.active => 'Activo',
-    PlanStatus.completed => 'Pagado',
-    PlanStatus.cancelled => 'Anulado',
-  };
-}
 
 class PlanItem {
   final String name;
@@ -31,13 +25,22 @@ class PlanItem {
 class Abono {
   final DateTime date;
   final int amount;
-  const Abono(this.date, this.amount);
+  final String method;
+  final Uint8List? voucherBytes;
+
+  const Abono(
+    this.date,
+    this.amount, {
+    this.method = 'Efectivo',
+    this.voucherBytes,
+  });
 }
 
 class PlanSepare {
   final String id;
   final String clientName;
   final String clientDoc;
+  final String clientEmail;
   final DateTime createdAt;
   final List<PlanItem> items;
   final List<Abono> abonos;
@@ -51,6 +54,7 @@ class PlanSepare {
     required this.createdAt,
     required this.items,
     required this.abonos,
+    this.clientEmail = '',
     this.status = PlanStatus.active,
     this.annulNote,
   }) {
@@ -59,41 +63,44 @@ class PlanSepare {
     }
   }
 
-  int get total => items.fold<int>(0, (s, i) => s + i.subtotal);
-  int get paid => abonos.fold<int>(0, (s, a) => s + a.amount);
+  int get total => items.fold<int>(0, (sum, item) => sum + item.subtotal);
+  int get paid => abonos.fold<int>(0, (sum, abono) => sum + abono.amount);
   int get balance => total - paid;
   bool get isActive => status == PlanStatus.active;
   bool get canReceivePayments => isActive && balance > 0;
 
-  void addPayment(int amount, {DateTime? date}) {
+  void addPayment(
+    int amount, {
+    DateTime? date,
+    String method = 'Efectivo',
+    Uint8List? voucherBytes,
+  }) {
     if (!canReceivePayments) {
       throw StateError('El plan no admite nuevos abonos.');
     }
-    if (amount <= 0) {
-      throw ArgumentError.value(amount, 'amount', 'Debe ser mayor que cero.');
+    if (amount <= 0 || amount > balance) {
+      throw ArgumentError.value(amount, 'amount', 'Valor de abono no válido.');
     }
-    if (amount > balance) {
-      throw ArgumentError.value(
+    abonos.insert(
+      0,
+      Abono(
+        date ?? DateTime.now(),
         amount,
-        'amount',
-        'No puede superar el saldo pendiente.',
-      );
-    }
-
-    abonos.insert(0, Abono(date ?? DateTime.now(), amount));
+        method: method,
+        voucherBytes: voucherBytes,
+      ),
+    );
     if (balance == 0) status = PlanStatus.completed;
   }
 
   double get progress =>
       total == 0 ? 0.0 : (paid / total).clamp(0.0, 1.0).toDouble();
 
-  /// Plazo máximo: 2 meses desde la creación.
   DateTime get dueDate =>
       DateTime(createdAt.year, createdAt.month + 2, createdAt.day);
 
   int get daysLeft => dueDate.difference(DateTime.now()).inDays;
 
-  /// Regla de la ficha: menos del 50% abonado => queda a favor de la tienda.
   String get annulOutcome {
     if (paid * 2 < total) {
       return 'El abono de ${formatCop(paid)} queda a favor de la tienda '

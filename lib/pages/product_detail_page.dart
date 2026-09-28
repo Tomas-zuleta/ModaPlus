@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../data/app_store.dart';
 import '../models/cart_item.dart';
+import '../models/color_producto.dart';
 import '../models/product.dart';
+import '../models/product_variant.dart';
+import '../models/talla.dart';
 import '../utils/animations.dart';
 import '../utils/app_colors.dart';
 import '../utils/format.dart';
@@ -31,9 +34,30 @@ class ProductDetailPage extends StatefulWidget {
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
   final GlobalKey _addButtonKey = GlobalKey();
-  String? _size;
-  ProductColor? _color;
+  Talla? _size;
+  ColorProducto? _color;
   int _qty = 1;
+
+  ProductVariant? get _selectedVariant =>
+      _size == null || _color == null
+          ? null
+          : widget.product.variantFor(_size!.id, _color!.id);
+
+  int get _maxStock => _selectedVariant?.stockActual ?? 1;
+  int get _unitPrice => _selectedVariant?.precioVenta ?? widget.product.price;
+
+  List<ColorProducto> get _colorsForSize => _size == null
+      ? const []
+      : widget.product.colorsForSize(_size!.id);
+
+  void _selectSize(Talla size) {
+    setState(() {
+      _size = size;
+      final colors = widget.product.colorsForSize(size.id);
+      _color = colors.isEmpty ? null : colors.first;
+      _qty = 1;
+    });
+  }
 
   void _add() {
     final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
@@ -66,7 +90,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       return;
     }
 
-    if (_qty < 1 || _qty > widget.product.stock) {
+    final variant = _selectedVariant;
+    if (variant == null || _qty < 1 || _qty > variant.stockActual) {
       messenger.showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
@@ -80,7 +105,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Máx. ${widget.product.stock} unidades',
+                  'Máx. ${variant?.stockActual ?? 0} unidades',
                   style: const TextStyle(
                     color: AppColors.textDark,
                     fontWeight: FontWeight.w600,
@@ -97,8 +122,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     AppStore.instance.addToCart(
       CartItem(
         product: widget.product,
-        size: _size!,
-        color: _color!,
+        variant: variant,
         quantity: _qty,
       ),
     );
@@ -128,7 +152,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               width: 28,
               height: 28,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.12),
+                color: AppColors.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: const Icon(
@@ -222,7 +246,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           ),
                         ),
                         Text(
-                          formatCop(p.price * _qty),
+                          formatCop(_unitPrice * _qty),
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
@@ -279,7 +303,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'SKU: ${p.sku}',
+                                'Referencia: ${p.referencia}',
                                 style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -289,7 +313,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                formatCop(p.price),
+                                formatCop(_unitPrice),
                                 style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.w600,
@@ -317,11 +341,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                 spacing: 8,
                                 runSpacing: 8,
                                 children: [
-                                  for (final s in p.sizes)
+                                  for (final s in p.availableSizes)
                                     _SizeChip(
-                                      label: s,
-                                      selected: s == _size,
-                                      onTap: () => setState(() => _size = s),
+                                      label: s.nombre,
+                                      selected: s.id == _size?.id,
+                                      onTap: () => _selectSize(s),
                                     ),
                                 ],
                               ),
@@ -334,17 +358,26 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               _label(
                                 _color == null
                                     ? 'COLOR'
-                                    : 'COLOR · ${_color!.name.toUpperCase()}',
+                                    : 'COLOR · ${_color!.nombre.toUpperCase()}',
                               ),
                               const SizedBox(height: 10),
+                              if (_size == null)
+                                const Text(
+                                  'Selecciona primero la talla',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.slate,
+                                  ),
+                                )
+                              else
                               Wrap(
                                 spacing: 12,
                                 runSpacing: 12,
                                 children: [
-                                  for (final c in p.colors)
+                                  for (final c in _colorsForSize)
                                     _ColorDot(
                                       color: c,
-                                      selected: _color?.name == c.name,
+                                      selected: _color?.id == c.id,
                                       onTap: () => setState(() => _color = c),
                                     ),
                                 ],
@@ -362,12 +395,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                   QuantityStepper(
                                     value: _qty,
                                     min: 1,
-                                    max: p.stock,
+                                    max: _maxStock,
                                     onChanged: (v) => setState(() => _qty = v),
                                   ),
                                   const SizedBox(width: 16),
                                   Text(
-                                    '${p.stock} disponibles',
+                                    _selectedVariant == null
+                                      ? 'Elige talla y color'
+                                      : '$_maxStock disponibles',
                                     style: const TextStyle(
                                       fontSize: 13,
                                       color: AppColors.slate,
@@ -430,7 +465,7 @@ class _SizeChip extends StatelessWidget {
 }
 
 class _ColorDot extends StatelessWidget {
-  final ProductColor color;
+  final ColorProducto color;
   final bool selected;
   final VoidCallback onTap;
 

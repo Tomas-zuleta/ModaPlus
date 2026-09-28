@@ -100,9 +100,22 @@ class OrderDetailPage extends StatelessWidget {
     }
 
     AppStore.instance.changeOrderStatus(order, selected, paid: paid);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Pedido ${order.id}: ${selected.label}')),
-    );
+    if (selected == OrderStatus.paid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'El cliente ha pagado el pedido ${order.id}. '
+            'Notificación enviada al cliente.',
+          ),
+          backgroundColor: AppColors.primary,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Pedido ${order.id}: ${selected.label}')),
+      );
+    }
   }
 
   @override

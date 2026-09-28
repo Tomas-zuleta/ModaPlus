@@ -38,35 +38,45 @@ class _AuthPageState extends State<AuthPage> {
 
   /// Acepta cualquier correo y contraseña.
   /// Si el correo empieza por "admin" entra como administrador.
-  Future<void> _login(String email, String password) {
-    return _enter(
-      name: _nameFromEmail(email),
-      email: email,
-      role: roleFromEmail(email),
-    );
+  Future<void> _login(String email, String password) async {
+    setState(() => _isLoading = true);
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    final role = roleFromEmail(email);
+    final name = _nameFromEmail(email);
+
+    AppStore.instance.startSession(name: name, email: email, role: role);
+    _goNext(name: name, role: role);
   }
 
-  Future<void> _register(String name, String email, String password) {
-    return _enter(
-      name: name.trim().isEmpty ? _nameFromEmail(email) : name.trim(),
-      email: email,
-      role: UserRole.client,
-    );
-  }
-
-  /// Quien se registra siempre entra como cliente.
-  Future<void> _enter({
-    required String name,
+  /// Registro completo, alineado con la tabla Usuarios.
+  Future<void> _register({
+    required String nombres,
+    required String apellidos,
+    required String identificacion,
+    required String telefono,
     required String email,
-    required UserRole role,
+    required String password,
   }) async {
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    AppStore.instance.startSession(name: name, email: email, role: role);
+    AppStore.instance.registerSession(
+      nombres: nombres,
+      apellidos: apellidos,
+      identificacion: identificacion,
+      phone: telefono,
+      email: email,
+      role: UserRole.client,
+    );
+    _goNext(name: nombres, role: UserRole.client);
+  }
 
+  void _goNext({required String name, required UserRole role}) {
     // En computador (escritorio o navegador) se omite la pantalla de carga.
     final Widget destination = isDesktopPlatform
         ? (role == UserRole.admin ? const AdminShell() : const ClientShell())

@@ -1,175 +1,201 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
-import '../data/app_store.dart';
+import '../models/order.dart';
 import '../models/plan_separe.dart';
-import '../utils/animations.dart';
 import '../utils/app_colors.dart';
 import '../utils/format.dart';
-import '../widgets/empty_state.dart';
 import '../widgets/primary_button.dart';
-import 'plan_payment_dialog.dart';
-import 'plan_separe_detail_page.dart';
+import '../widgets/sans_scope.dart';
 
 class PaymentsView extends StatelessWidget {
-  const PaymentsView({super.key});
+  final Order? order;
+  final PlanSepare? plan;
 
-  Future<void> _selectPlan(BuildContext context) async {
-    final plans = AppStore.instance.plans
-        .where((plan) => plan.canReceivePayments)
-        .toList();
-    final plan = await showModalBottomSheet<PlanSepare>(
-      context: context,
-      backgroundColor: Colors.white,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: Text(
-                'SELECCIONA UN PLAN',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
-                  color: AppColors.slate,
-                ),
-              ),
-            ),
-            if (plans.isEmpty)
-              const Padding(
-                padding: EdgeInsets.fromLTRB(20, 0, 20, 24),
-                child: Text('No hay planes activos con saldo pendiente.'),
-              )
-            else
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    for (final plan in plans)
-                      ListTile(
-                        title: Text('${plan.id} · ${plan.clientName}'),
-                        subtitle: Text('Saldo ${formatCop(plan.balance)}'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => Navigator.pop(sheetContext, plan),
-                      ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-    if (plan == null || !context.mounted) return;
-    final saved = await showPlanPaymentDialog(context, plan);
-    if (saved && context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Abono registrado en ${plan.id}')));
-    }
-  }
+  const PaymentsView({super.key, this.order, this.plan})
+      : assert(order != null || plan != null);
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: AppStore.instance,
-      builder: (context, _) {
-        final records = [
-          for (final plan in AppStore.instance.plans)
-            for (final payment in plan.abonos) (plan: plan, payment: payment),
-        ]..sort((a, b) => b.payment.date.compareTo(a.payment.date));
+    final isPlan = plan != null;
+    final id = isPlan ? plan!.id : order!.id;
+    final client = isPlan ? plan!.clientName : order!.clientName;
+    final date = isPlan ? plan!.createdAt : order!.createdAt;
+    final total = isPlan ? plan!.total : order!.total;
+    final paidNow = isPlan ? plan!.abonos.first.amount : order!.paid;
+    final method = isPlan ? plan!.abonos.first.method : order!.paymentMethod;
+    final balance = isPlan ? plan!.balance : order!.balance;
 
-        return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
-              children: [
-                const Text(
-                  'Abonos',
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
-                  ),
-                ).stagger(0),
-                const SizedBox(height: 8),
-                const Text(
-                  'Historial de pagos asociados a Plan Separe',
-                  style: TextStyle(fontSize: 17, color: AppColors.textDark),
-                ).stagger(1),
-                const SizedBox(height: 20),
-                PrimaryButton(
-                  text: 'Registrar abono',
-                  onPressed: () => _selectPlan(context),
-                ).stagger(2),
-                const SizedBox(height: 20),
-                if (records.isEmpty)
-                  const EmptyState(
-                    icon: Icons.payments_outlined,
-                    message: 'No hay abonos registrados',
-                  )
-                else
-                  for (int i = 0; i < records.length; i++)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: InkWell(
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                PlanSepareDetailPage(plan: records[i].plan),
-                          ),
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.panel,
-                            border: Border.all(color: AppColors.panelBorder),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.payments_outlined,
-                                color: AppColors.primary,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${records[i].plan.id} · ${records[i].plan.clientName}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.textDark,
-                                      ),
-                                    ),
-                                    Text(
-                                      '${formatDate(records[i].payment.date)} · Saldo ${formatCop(records[i].plan.balance)}',
-                                      style: const TextStyle(
-                                        color: AppColors.slate,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Text(
-                                formatCop(records[i].payment.amount),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ).stagger(i > 5 ? 5 : i + 3),
+    return SansScope(
+      child: Scaffold(
+        backgroundColor: AppColors.dashboardBg,
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.check_circle_outline, size: 76, color: AppColors.primary)
+                        .animate()
+                        .scale(
+                          begin: const Offset(0, 0),
+                          end: const Offset(1, 1),
+                          duration: 700.ms,
+                          curve: Curves.elasticOut,
+                        )
+                        .fadeIn(duration: 300.ms),
+                    const SizedBox(height: 18),
+                    Text(
+                      isPlan ? '¡Plan separe registrado!' : '¡Pago realizado!',
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: AppColors.textDark),
                     ),
-              ],
+                    const SizedBox(height: 24),
+                    _Receipt(
+                      id: id,
+                      client: client,
+                      date: date,
+                      items: isPlan
+                          ? plan!.items
+                              .map((i) => _ReceiptLine(i.name, '${i.size} · ${i.color} · x${i.quantity}', i.subtotal))
+                              .toList()
+                          : order!.items
+                              .map((i) => _ReceiptLine(i.name, '${i.size} · ${i.color} · x${i.quantity}', i.subtotal))
+                              .toList(),
+                      total: total,
+                      paidNow: paidNow,
+                      balance: balance,
+                      method: method,
+                      isPlan: isPlan,
+                    ),
+                    const SizedBox(height: 24),
+                    PrimaryButton(
+                      text: 'Volver al inicio',
+                      onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
+}
+
+class _ReceiptLine {
+  final String name;
+  final String detail;
+  final int amount;
+  const _ReceiptLine(this.name, this.detail, this.amount);
+}
+
+class _Receipt extends StatelessWidget {
+  final String id, client, method;
+  final DateTime date;
+  final List<_ReceiptLine> items;
+  final int total, paidNow, balance;
+  final bool isPlan;
+
+  const _Receipt({
+    required this.id,
+    required this.client,
+    required this.date,
+    required this.items,
+    required this.total,
+    required this.paidNow,
+    required this.balance,
+    required this.method,
+    required this.isPlan,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.panelBorder)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Center(
+            child: Text(
+              'MODA PLUS',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w300, letterSpacing: 5, color: AppColors.textDark),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Center(
+            child: Text(
+              isPlan ? 'COMPROBANTE PLAN SEPARE' : 'FACTURA DE VENTA',
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: AppColors.slate),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const _Divider(),
+          const SizedBox(height: 12),
+          _row('N.º', id),
+          _row('Cliente', client),
+          _row('Fecha', formatDate(date)),
+          _row('Método', method),
+          const SizedBox(height: 12),
+          const _Divider(),
+          const SizedBox(height: 12),
+          for (final it in items)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(it.name, style: const TextStyle(fontSize: 13, color: AppColors.textDark)),
+                        Text(it.detail, style: const TextStyle(fontSize: 11, color: AppColors.slate)),
+                      ],
+                    ),
+                  ),
+                  Text(formatCop(it.amount), style: const TextStyle(fontSize: 13, color: AppColors.textDark)),
+                ],
+              ),
+            ),
+          const SizedBox(height: 12),
+          const _Divider(),
+          const SizedBox(height: 12),
+          _row('Total', formatCop(total), bold: true),
+          _row(isPlan ? 'Abono de hoy' : 'Pagado', formatCop(paidNow), highlight: true),
+          if (isPlan) _row('Saldo pendiente', formatCop(balance)),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(String label, String value, {bool bold = false, bool highlight = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 13, color: AppColors.slate)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: bold || highlight ? 15 : 13,
+              fontWeight: bold || highlight ? FontWeight.w700 : FontWeight.w400,
+              color: highlight ? AppColors.primary : AppColors.textDark,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  const _Divider();
+  @override
+  Widget build(BuildContext context) => Container(height: 1, color: AppColors.panelBorder);
 }

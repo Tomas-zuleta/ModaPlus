@@ -21,14 +21,20 @@ class ProfileView extends StatefulWidget {
 
 class _ProfileViewState extends State<ProfileView> {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
+  final _nombresCtrl = TextEditingController();
+  final _apellidosCtrl = TextEditingController();
+  final _docCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
   bool _editing = false;
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
+    _nombresCtrl.dispose();
+    _apellidosCtrl.dispose();
+    _docCtrl.dispose();
     _phoneCtrl.dispose();
+    _addressCtrl.dispose();
     super.dispose();
   }
 
@@ -39,16 +45,22 @@ class _ProfileViewState extends State<ProfileView> {
 
   void _startEdit() {
     final s = AppStore.instance.session;
-    _nameCtrl.text = s?.name ?? '';
+    _nombresCtrl.text = s?.nombres ?? '';
+    _apellidosCtrl.text = s?.apellidos ?? '';
+    _docCtrl.text = s?.identificacion ?? '';
     _phoneCtrl.text = s?.phone ?? '';
+    _addressCtrl.text = s?.direccion ?? '';
     setState(() => _editing = true);
   }
 
   void _save() {
     if (!_formKey.currentState!.validate()) return;
     AppStore.instance.updateProfile(
-      name: _nameCtrl.text.trim(),
+      nombres: _nombresCtrl.text.trim(),
+      apellidos: _apellidosCtrl.text.trim(),
       phone: _phoneCtrl.text.trim(),
+      direccion: _addressCtrl.text.trim(),
+      identificacion: _docCtrl.text.trim(),
     );
     setState(() => _editing = false);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -127,11 +139,30 @@ class _ProfileViewState extends State<ProfileView> {
                               InfoRow(label: 'Correo', value: s.email),
                               const SizedBox(height: 12),
                               AuthTextField(
-                                label: 'Nombre completo',
-                                controller: _nameCtrl,
+                                label: 'Nombres',
+                                controller: _nombresCtrl,
                                 validator: (v) =>
                                     (v == null || v.trim().isEmpty)
-                                        ? 'Ingresa tu nombre'
+                                        ? 'Ingresa tus nombres'
+                                        : null,
+                              ),
+                              const SizedBox(height: 20),
+                              AuthTextField(
+                                label: 'Apellidos',
+                                controller: _apellidosCtrl,
+                                validator: (v) =>
+                                    (v == null || v.trim().isEmpty)
+                                        ? 'Ingresa tus apellidos'
+                                        : null,
+                              ),
+                              const SizedBox(height: 20),
+                              AuthTextField(
+                                label: 'Documento de identidad',
+                                controller: _docCtrl,
+                                keyboardType: TextInputType.number,
+                                validator: (v) =>
+                                    (v == null || v.trim().isEmpty)
+                                        ? 'Ingresa tu documento'
                                         : null,
                               ),
                               const SizedBox(height: 20),
@@ -140,7 +171,6 @@ class _ProfileViewState extends State<ProfileView> {
                                 hint: '3001234567',
                                 controller: _phoneCtrl,
                                 keyboardType: TextInputType.phone,
-                                textInputAction: TextInputAction.done,
                                 validator: (v) {
                                   final t = (v ?? '').trim();
                                   if (t.isEmpty) return null;
@@ -149,17 +179,36 @@ class _ProfileViewState extends State<ProfileView> {
                                       : 'Teléfono no válido';
                                 },
                               ),
+                              const SizedBox(height: 20),
+                              AuthTextField(
+                                label: 'Dirección',
+                                hint: 'Calle 10 # 20-30',
+                                controller: _addressCtrl,
+                                textInputAction: TextInputAction.done,
+                              ),
                               const SizedBox(height: 12),
                             ],
                           ),
                         )
                       : Column(
                           children: [
-                            InfoRow(label: 'Nombre', value: s.name),
+                            InfoRow(label: 'Nombres', value: s.nombres),
+                            InfoRow(
+                              label: 'Apellidos',
+                              value: s.apellidos.isEmpty ? 'No registrado' : s.apellidos,
+                            ),
                             InfoRow(label: 'Correo', value: s.email),
+                            InfoRow(
+                              label: 'Documento',
+                              value: s.identificacion ?? 'No registrado',
+                            ),
                             InfoRow(
                               label: 'Teléfono',
                               value: s.phone.isEmpty ? 'No registrado' : s.phone,
+                            ),
+                            InfoRow(
+                              label: 'Dirección',
+                              value: s.direccion.isEmpty ? 'No registrada' : s.direccion,
                             ),
                           ],
                         ),

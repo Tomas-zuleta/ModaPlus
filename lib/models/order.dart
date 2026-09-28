@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 enum OrderStatus { requested, verification, partial, paid, delivered, cancelled }
@@ -72,6 +74,11 @@ class Order {
   final List<OrderItem> items;
   int paid;
   OrderStatus status;
+  String paymentMethod;
+  String? paymentAccountId;
+  Uint8List? voucherBytes;
+  String? voucherFileName;
+  DateTime? voucherSentAt;
 
   Order({
     required this.id,
@@ -82,6 +89,11 @@ class Order {
     required this.items,
     this.paid = 0,
     this.status = OrderStatus.requested,
+    this.paymentMethod = 'Pendiente',
+    this.paymentAccountId,
+    this.voucherBytes,
+    this.voucherFileName,
+    this.voucherSentAt,
   });
 
   int get total => items.fold<int>(0, (s, i) => s + i.subtotal);
