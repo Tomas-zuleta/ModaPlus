@@ -125,7 +125,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     if (_layaway && _number(_initial.text) < _lines.fold<double>(
       0, (sum, line) => sum + 20000 * int.parse(line.quantity.text))) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('La cuota inicial mínima es $20.000 por prenda.')));
+        content: Text('La cuota inicial mínima es \$20.000 por prenda.')));
       return;
     }
     setState(() => _busy = true);
