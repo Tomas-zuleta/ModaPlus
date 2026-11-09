@@ -51,7 +51,7 @@ class _PlanSepareViewState extends State<PlanSepareView> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
               children: [
-                const Text(
+                Text(
                   'Plan Separe',
                   style: Theme.of(context).textTheme.headlineMedium,
                 ).stagger(0),
