@@ -56,7 +56,7 @@ class _AuthPageState extends State<AuthPage> {
         Center(child: AnimatedSwitcher(duration: const Duration(milliseconds: 250), child: _isLogin ? AuthFooterLink(key: const ValueKey('footer-login'), question: '¿No tienes una cuenta?', actionText: 'Registrarme', onTap: _toggleMode) : AuthFooterLink(key: const ValueKey('footer-register'), question: '¿Ya tienes una cuenta?', actionText: 'Iniciar sesión', onTap: _toggleMode))),
         const SizedBox(height: 30),
         const Center(child: Text('MODA PLUS  •  VISTE TU HISTORIA', style: TextStyle(color: AppColors.textMuted, fontSize: 10, letterSpacing: 1.4))),
-      ])))),
+      ]))))),
     ]),
   );
 }
