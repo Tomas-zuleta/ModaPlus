@@ -39,6 +39,23 @@ class SupabaseDataService {
     return rows.map((r) => Map<String, dynamic>.from(r)).toList();
   }
 
+  /// El acceso al comprobante depende de RLS y Storage policies.
+  /// Nunca se construyen URLs públicas ni se devuelve una service_role key.
+  Future<Map<String, dynamic>> saleDetail(int id) async {
+    if (_db.auth.currentUser == null) throw StateError('Sesión requerida');
+    final row = await _db.from('ventas')
+      .select('id_venta,id_cliente,fecha_venta,metodo_pago,total_venta,estado,origen,comprobante_url,comprobante_nombre,motivo_rechazo')
+      .eq('id_venta', id).single();
+    return Map<String, dynamic>.from(row);
+  }
+
+  Future<String?> receiptSignedUrl(String path) async {
+    if (_db.auth.currentUser == null) throw StateError('Sesión requerida');
+    if (path.isEmpty || path.startsWith('/') || path.contains('..') ||
+        path.contains('://')) throw StateError('Ruta de comprobante inválida');
+    return _db.storage.from('comprobantes').createSignedUrl(path, 120);
+  }
+
   Future<List<Map<String, dynamic>>> myOrders() async {
     final id = await _clientId();
     final rows = await _db.from('ventas')

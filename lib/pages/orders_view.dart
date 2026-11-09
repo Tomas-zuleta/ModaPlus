@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/supabase_data_service.dart';
+import 'sale_review_page.dart';
 
 class OrdersView extends StatefulWidget {
   final bool onlyMine;
@@ -71,6 +72,12 @@ class _OrdersViewState extends State<OrdersView> {
             child: Center(child: Text('No hay pedidos en esta categoría'))),
         for (final order in filtered)
           Card(child: ListTile(
+            onTap: () {
+              final id = (order['id_venta'] as num?)?.toInt();
+              if (id != null) Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => SaleReviewPage(saleId: id,
+                  isAdmin: !widget.onlyMine)));
+            },
             leading: const Icon(Icons.receipt_long_outlined),
             title: Text('Factura #${order['id_venta']}'),
             subtitle: Text('${order['fecha_venta'] ?? '-'} · '

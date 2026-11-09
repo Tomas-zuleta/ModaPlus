@@ -71,6 +71,8 @@ class _DashboardViewState extends State<DashboardView> {
       final low = data.stock.where((v) =>
         v['estado'] == 'ACTIVO' &&
         (num.tryParse('${v['stock_actual']}') ?? 0) <= 5).toList();
+      final rejected = data.sales.where((s) =>
+        (s['estado'] ?? '').toString().toUpperCase().contains('RECHAZ')).length;
       final activePlans = data.plans.where((p) =>
         ['ACTIVO','ACTIVA'].contains((p['estado'] ?? '').toString().toUpperCase())).length;
       Widget metric(String title, String value, IconData icon) => SizedBox(
@@ -97,7 +99,23 @@ class _DashboardViewState extends State<DashboardView> {
           metric('PLANES ACTIVOS', '$activePlans', Icons.bookmark_outline),
           metric('PEDIDOS PENDIENTES', '${pending.length}', Icons.pending_actions),
           metric('STOCK BAJO (≤5)', '${low.length}', Icons.warning_amber_rounded),
+          metric('VENTAS RECHAZADAS', '$rejected', Icons.cancel_outlined),
         ]),
+        const SizedBox(height: 16),
+        Card(child: Padding(padding: const EdgeInsets.all(15),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('ESTADOS DE VENTA (REGISTROS CONSULTADOS)',
+              style: theme.textTheme.titleLarge),
+            const SizedBox(height: 12),
+            for (final status in (data.sales.map((s) =>
+              (s['estado'] ?? 'Sin estado').toString()).toSet().toList()..sort()))
+              Padding(padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(children: [
+                  Expanded(child: Text(status)),
+                  Text('${data.sales.where((s) =>
+                    (s['estado'] ?? 'Sin estado').toString() == status).length}'),
+                ])),
+          ]))),
         const SizedBox(height: 16),
         Card(child: Padding(padding: const EdgeInsets.all(15),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
