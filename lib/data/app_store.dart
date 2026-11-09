@@ -60,8 +60,8 @@ class AppStore extends ChangeNotifier {
   }
 
   void changeOrderStatus(Order order, OrderStatus status, {int? paid}) {
+    if (!orders.contains(order) || !order.status.next.contains(status)) return;
     order.status = status;
-    if (!order.status.next.contains(status)) return;
     if (status == OrderStatus.paid) order.paid = order.total;
     if (status == OrderStatus.partial && paid != null) {
       order.paid = paid.clamp(0, order.total);
