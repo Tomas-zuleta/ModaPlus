@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../data/app_store.dart';
 import '../models/user_role.dart';
-import '../utils/app_colors.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/app_top_bar.dart';
@@ -52,7 +51,7 @@ class _AdminShellState extends State<AdminShell> {
         final name = store.session?.name ?? 'Administrador';
         return SansScope(
           child: Scaffold(
-            backgroundColor: AppColors.dashboardBg,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             appBar: const AppTopBar(),
             drawer: AppDrawer(name: name, role: UserRole.admin),
             bottomNavigationBar: AppBottomNav(

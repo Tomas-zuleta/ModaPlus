@@ -11,7 +11,15 @@ class ProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final url = DemoImages.products[product.id];
+    // Prioridad a las imágenes del catálogo real. Las imágenes de prueba
+    // solo se utilizan en productos locales sin variante de Supabase.
+    final candidate = product.variantId == null
+        ? DemoImages.products[product.id]
+        : product.imageUrl;
+    final uri = candidate == null ? null : Uri.tryParse(candidate);
+    final url = uri != null && uri.scheme == 'https' && uri.host.isNotEmpty
+        ? candidate
+        : null;
     return Container(
       height: height,
       width: double.infinity,
@@ -23,7 +31,7 @@ class ProductImage extends StatelessWidget {
               fit: BoxFit.cover,
               width: double.infinity,
               height: height,
-              semanticLabel: 'Imagen ilustrativa de ${product.name}',
+              semanticLabel: 'Imagen de ${product.name}',
               loadingBuilder: (context, child, progress) => progress == null
                   ? child
                   : Stack(fit: StackFit.expand, children: [

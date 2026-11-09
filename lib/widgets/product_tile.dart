@@ -29,7 +29,7 @@ class _ProductTileState extends State<ProductTile> {
           duration: const Duration(milliseconds: 170),
           curve: Curves.easeOutCubic,
           child: Material(
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(18),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
@@ -47,10 +47,10 @@ class _ProductTileState extends State<ProductTile> {
                     )),
                     const SizedBox(height: 10),
                     Text(p.name, maxLines: 2, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textDark)),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface)),
                     const SizedBox(height: 5),
                     Text(formatCop(p.price),
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.primary)),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.primary)),
                     const SizedBox(height: 4),
                   ],
                 ),

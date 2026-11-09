@@ -77,12 +77,20 @@ class AppStore extends ChangeNotifier {
   void addToCart(CartItem item) {
     final index = cart.indexWhere((c) => c.sameLine(item));
     if (item.quantity <= 0 || item.product.stock <= 0) return;
+    // El stock pertenece a la variante, no a la presentación de talla/color.
+    // Evita repartir las mismas existencias entre varias líneas del carrito.
+    final otherQuantity = cart
+        .where((c) => c.variantId != null &&
+            c.variantId == item.variantId && !c.sameLine(item))
+        .fold<int>(0, (sum, c) => sum + c.quantity);
+    final available = item.product.stock - otherQuantity;
+    if (available <= 0) return;
     if (index >= 0) {
       final merged = cart[index].quantity + item.quantity;
       cart[index].quantity =
-          merged > item.product.stock ? item.product.stock : merged;
+          merged > available ? available : merged;
     } else {
-      item.quantity = item.quantity.clamp(1, item.product.stock);
+      item.quantity = item.quantity.clamp(1, available);
       cart.add(item);
     }
     notifyListeners();
@@ -90,7 +98,13 @@ class AppStore extends ChangeNotifier {
 
   void setCartQuantity(CartItem item, int quantity) {
     if (!cart.contains(item) || quantity < 1 || item.product.stock < 1) return;
-    item.quantity = quantity > item.product.stock ? item.product.stock : quantity;
+    final otherQuantity = cart
+        .where((c) => !identical(c, item) && c.variantId != null &&
+            c.variantId == item.variantId)
+        .fold<int>(0, (sum, c) => sum + c.quantity);
+    final available = item.product.stock - otherQuantity;
+    if (available < 1) return;
+    item.quantity = quantity > available ? available : quantity;
     notifyListeners();
   }
 
