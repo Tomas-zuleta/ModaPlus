@@ -11,7 +11,7 @@ import '../widgets/primary_button.dart';
 import '../widgets/product_image.dart';
 import '../widgets/quantity_stepper.dart';
 import '../widgets/sans_scope.dart';
-import 'order_success_page.dart';
+import 'checkout_payment_page.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -24,14 +24,9 @@ class _CartPageState extends State<CartPage> {
   bool _sending = false;
 
   Future<void> _request() async {
-    // Nunca confirmar una compra únicamente en memoria.
-    // Falta integrar el RPC transaccional de ventas e inventario existente.
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Los pedidos reales aún no están habilitados. '
-        'Estamos validando la conexión segura con Supabase.'),
-      duration: Duration(seconds: 5),
-    ));
+    if (AppStore.instance.cart.isEmpty) return;
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => const CheckoutPaymentPage()));
   }
 
   @override
@@ -85,14 +80,13 @@ class _CartPageState extends State<CartPage> {
                           ),
                           const SizedBox(height: 10),
                           const Text(
-                            'El pago y el retiro se hacen en la tienda. '
-                            'El pedido tiene vigencia de 1 semana.',
+                            'Pago por transferencia / QR. Adjunta tu comprobante para revisión.',
                             style: TextStyle(
                                 fontSize: 12, color: AppColors.slate),
                           ),
                           const SizedBox(height: 18),
                           PrimaryButton(
-                            text: 'Solicitar pedido',
+                            text: 'CONTINUAR AL PAGO',
                             isLoading: _sending,
                             onPressed: _request,
                           ),
