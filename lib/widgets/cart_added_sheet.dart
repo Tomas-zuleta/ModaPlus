@@ -9,7 +9,7 @@ import '../pages/cart_page.dart';
 
 /// Confirmación de carrito con resumen y acciones claras.
 Future<void> showCartAddedSheet(BuildContext context, Product product, int quantity) {
-  return showModalBottomSheet<void>(
+  return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
