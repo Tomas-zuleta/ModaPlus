@@ -30,3 +30,17 @@ async def my_plans(user=Depends(authenticated_user)):
         "limit": "100",
     })
     return {"items": rows}
+
+@router.get("/role")
+async def my_role(user=Depends(authenticated_user)):
+    from ..security import require_admin
+    from fastapi import HTTPException
+    account = await current_account(user)
+    try:
+        await require_admin(user, account)
+        role = "admin"
+    except HTTPException as exc:
+        if exc.status_code != 403:
+            raise
+        role = "client"
+    return {"role": role}

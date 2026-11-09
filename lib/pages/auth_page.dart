@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../data/app_store.dart';
 import '../models/user_role.dart';
+import '../services/supabase_auth_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/fade_route.dart';
 import '../widgets/auth_footer_link.dart';
@@ -22,19 +23,31 @@ class _AuthPageState extends State<AuthPage> {
   void _toggleMode() { if (!_isLoading) setState(() => _isLogin = !_isLogin); }
   void _openForgot() => Navigator.of(context).push(fadeRoute(const ForgotPasswordPage(), duration: const Duration(milliseconds: 400)));
 
-  // TODO: Reemplazar este flujo de demostración por Supabase Auth antes de producción.
-  // Nunca conceder rol admin según el texto del correo electrónico.
-  Future<void> _login(String email, String password) => _enter(name: _nameFromEmail(email), email: email);
-  Future<void> _register(String name, String email, String password) => _enter(name: name, email: email);
-  Future<void> _enter({required String name, required String email}) async {
+  Future<void> _login(String email, String password) async {
     setState(() => _isLoading = true);
-    await Future<void>.delayed(const Duration(milliseconds: 550));
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-    AppStore.instance.startSession(name: name, email: email, role: UserRole.client);
-    Navigator.of(context).pushReplacement(fadeRoute(LoadingPage(name: name, role: UserRole.client)));
+    try {
+      final account = await SupabaseAuthService.instance.signIn(email, password);
+      if (!mounted) return;
+      AppStore.instance.startSession(
+        name: account.name, email: account.email, role: account.role);
+      Navigator.of(context).pushReplacement(
+        fadeRoute(LoadingPage(name: account.name, role: account.role)));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(error is AuthException ? error.message :
+          'No se pudo iniciar sesión. Revisa tu conexión e inténtalo de nuevo.')));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
-  String _nameFromEmail(String email) { final local = email.split('@').first.trim(); return local.isEmpty ? 'Usuario' : local[0].toUpperCase() + local.substring(1); }
+
+  Future<void> _register(String name, String email, String password) async {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('El registro móvil requiere datos de identificación. '
+        'Por ahora crea tu cuenta desde la web e inicia sesión aquí.')));
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
