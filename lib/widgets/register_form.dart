@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../pages/legal_draft_page.dart';
 
 import '../utils/animations.dart';
 import '../services/supabase_auth_service.dart';
@@ -145,19 +145,18 @@ class _RegisterFormState extends State<RegisterForm> {
             ).stagger(4),
             const SizedBox(height: 12),
             TextButton.icon(
-              onPressed: () => launchUrl(Uri.parse(
-                'https://github.com/MonsalveGod/ModaPlus/blob/main/docs/legal/terminos_y_condiciones.md'),
-                mode: LaunchMode.externalApplication),
-              icon: const Icon(Icons.open_in_new, size: 17),
-              label: const Text('Leer términos y condiciones (borrador)'),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const LegalDraftPage())),
+              icon: const Icon(Icons.description_outlined, size: 17),
+              label: const Text('Leer términos y condiciones (demo)'),
             ),
             CheckboxListTile(
               value: _acceptedDraft,
               onChanged: widget.isLoading ? null :
                 (v) => setState(() => _acceptedDraft = v ?? false),
               controlAffinity: ListTileControlAffinity.leading,
-              title: const Text('He leído y acepto los términos y condiciones'),
-              subtitle: const Text('Documento provisional pendiente de aprobación del negocio.'),
+              title: const Text('He leído el documento de demostración'),
+              subtitle: const Text('La versión legal definitiva y el registro de consentimiento están pendientes.'),
               contentPadding: EdgeInsets.zero,
             ),
             const SizedBox(height: 16),

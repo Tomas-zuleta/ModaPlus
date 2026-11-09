@@ -17,6 +17,7 @@ class _SaleReviewPageState extends State<SaleReviewPage> {
   Future<List<Map<String, dynamic>>>? _lines;
   bool _loadingReceipt = false;
   bool _rejecting = false;
+  bool _sendingEmail = false;
   String? _receiptError;
   @override
   void initState() { super.initState(); _refresh(); }
@@ -70,6 +71,23 @@ class _SaleReviewPageState extends State<SaleReviewPage> {
         content: Text('No se pudo rechazar la venta. Revisa permisos y estado.')));
     } finally {
       if (mounted) setState(() => _rejecting = false);
+    }
+  }
+
+  Future<void> _sendApprovedEmail() async {
+    if (_sendingEmail) return;
+    setState(() => _sendingEmail = true);
+    try {
+      await SupabaseDataService.instance.sendApprovedEmail(widget.saleId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Solicitud de correo de aprobación procesada.')));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('No se pudo enviar el correo. Revisa la configuración del servidor.')));
+    } finally {
+      if (mounted) setState(() => _sendingEmail = false);
     }
   }
 
@@ -132,6 +150,12 @@ class _SaleReviewPageState extends State<SaleReviewPage> {
                 'requiere un visor seguro adicional.'),
           ],
           if (widget.isAdmin) ...[
+            if ((sale['estado'] ?? '').toString().toUpperCase() == 'APROBADA')
+              OutlinedButton.icon(
+                onPressed: _sendingEmail ? null : _sendApprovedEmail,
+                icon: const Icon(Icons.mark_email_read_outlined),
+                label: Text(_sendingEmail ? 'Enviando...' : 'Enviar confirmación por correo'),
+              ),
             const SizedBox(height: 18),
             Text('Productos de la venta',
               style: Theme.of(context).textTheme.titleLarge),

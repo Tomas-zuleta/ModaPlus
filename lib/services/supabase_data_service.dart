@@ -25,6 +25,17 @@ class SupabaseDataService {
     return rows.map((r) => Map<String, dynamic>.from(r)).toList();
   }
 
+  /// La Edge Function valida el rol y comprueba que la venta esté APROBADA.
+  Future<void> sendApprovedEmail(int saleId) async {
+    if (_db.auth.currentSession == null) throw StateError('Sesión requerida');
+    if (saleId <= 0) throw ArgumentError('Venta inválida');
+    final response = await _db.functions.invoke('send-order-approved',
+      body: {'saleId': saleId});
+    if (response.status < 200 || response.status >= 300) {
+      throw StateError('No se pudo enviar la confirmación');
+    }
+  }
+
   Future<int> _clientId() async {
     final user = _db.auth.currentUser;
     if (user == null) throw StateError('Sesión requerida');

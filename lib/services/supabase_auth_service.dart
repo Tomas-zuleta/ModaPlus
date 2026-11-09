@@ -42,6 +42,7 @@ class SupabaseAuthService {
       if (response.user == null) throw const AuthException('No se pudo crear la cuenta.');
       if (response.session != null) {
         await activateCustomer(customer);
+        await _sendWelcomeBestEffort();
         return true;
       }
       return false;
@@ -53,6 +54,17 @@ class SupabaseAuthService {
     } on PostgrestException {
       throw const AuthException('Cuenta creada, pero no se pudo activar el perfil. '
         'Confirma tu correo e inicia sesión para reintentar.');
+    }
+  }
+
+  /// Reutiliza la función ya existente en Supabase. El fallo de correo
+  /// no debe bloquear un registro válido.
+  Future<void> _sendWelcomeBestEffort() async {
+    if (_db.auth.currentSession == null) return;
+    try {
+      await _db.functions.invoke('send-account-registered');
+    } catch (_) {
+      // El envío puede fallar o la función no estar desplegada.
     }
   }
 
@@ -93,7 +105,9 @@ class SupabaseAuthService {
           return await currentAccount();
         } on AuthException {
           await _activateFromMetadata();
-          return await currentAccount();
+          final account = await currentAccount();
+          await _sendWelcomeBestEffort();
+          return account;
         }
       } catch (_) {
         await _db.auth.signOut();
