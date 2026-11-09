@@ -94,6 +94,11 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearCart() {
+    cart.clear();
+    notifyListeners();
+  }
+
   void removeFromCart(CartItem item) {
     cart.remove(item);
     notifyListeners();

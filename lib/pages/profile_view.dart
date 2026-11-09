@@ -11,6 +11,7 @@ import '../widgets/primary_button.dart';
 import '../widgets/section_card.dart';
 import '../widgets/status_chip.dart';
 import 'auth_page.dart';
+import '../services/supabase_auth_service.dart';
 import 'settings_page.dart';
 
 class ProfileView extends StatefulWidget {
@@ -57,7 +58,9 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  void _logout() {
+  Future<void> _logout() async {
+    await SupabaseAuthService.instance.signOut();
+    if (!mounted) return;
     AppStore.instance.endSession();
     Navigator.of(context).pushAndRemoveUntil(
       fadeRoute(const AuthPage(), duration: const Duration(milliseconds: 500)),

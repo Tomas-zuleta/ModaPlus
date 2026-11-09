@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../data/app_store.dart';
 import '../utils/format.dart';
+import '../services/supabase_checkout_service.dart';
 
 /// Paso de pago: no se crea una venta hasta contar con operación atómica validada.
 class CheckoutPaymentPage extends StatefulWidget {
@@ -13,6 +14,8 @@ class CheckoutPaymentPage extends StatefulWidget {
 class _CheckoutPaymentPageState extends State<CheckoutPaymentPage> {
   PlatformFile? _receipt;
   bool _accepted = false;
+  bool _sending = false;
+  int? _createdOrderId;
   String? _error;
   static const int _maxBytes = 1024 * 1024;
   static const _extensions = ['png', 'jpg', 'jpeg', 'pdf'];
@@ -57,6 +60,29 @@ class _CheckoutPaymentPageState extends State<CheckoutPaymentPage> {
     }
   }
 
+  Future<void> _submit() async {
+    if (_sending || _receipt == null || !_accepted) return;
+    setState(() { _sending = true; _error = null; });
+    try {
+      final file = _receipt!;
+      final ext = file.extension?.toLowerCase();
+      final mime = ext == 'pdf' ? 'application/pdf'
+        : ext == 'png' ? 'image/png' : 'image/jpeg';
+      final id = await SupabaseCheckoutService.instance.submit(
+        cart: List.of(AppStore.instance.cart),
+        receipt: file.bytes!, filename: file.name, mimeType: mime);
+      if (!mounted) return;
+      AppStore.instance.clearCart();
+      setState(() => _createdOrderId = id);
+    } catch (e) {
+      if (mounted) setState(() => _error =
+        e is CheckoutException ? e.message :
+        'No se pudo confirmar el pedido. Revisa Mis compras antes de reintentar.');
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cart = AppStore.instance;
@@ -65,6 +91,22 @@ class _CheckoutPaymentPageState extends State<CheckoutPaymentPage> {
     final theme = Theme.of(context);
     final qr = Uri.tryParse(_qr);
     final qrReady = qr != null && qr.scheme == 'https' && qr.host.isNotEmpty;
+    if (_createdOrderId != null) {
+      return Scaffold(appBar: AppBar(title: const Text('PEDIDO RECIBIDO')),
+        body: Center(child: Padding(padding: const EdgeInsets.all(28),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.check_circle_outline, size: 72),
+            const SizedBox(height: 16),
+            Text('Pedido #${_createdOrderId!} registrado',
+              style: theme.textTheme.headlineSmall, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            const Text('Pendiente de verificación del comprobante. '
+              'La transferencia no se considera aprobada todavía.',
+              textAlign: TextAlign.center),
+            TextButton(onPressed: () => Navigator.of(context).pop(),
+              child: const Text('VOLVER')),
+          ]))));
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('FINALIZAR COMPRA')),
       body: ListView(padding: const EdgeInsets.all(22), children: [
@@ -123,23 +165,16 @@ class _CheckoutPaymentPageState extends State<CheckoutPaymentPage> {
           onChanged: (value) => setState(() => _accepted = value ?? false)),
         const SizedBox(height: 16),
         FilledButton.icon(
-          onPressed: verifiedVariants && _accepted && _receipt != null && qrReady
-            ? () => showDialog<void>(context: context, builder: (context) =>
-                AlertDialog(title: const Text('Validación pendiente'),
-                  content: const Text('Tu comprobante está listo, pero el envío '
-                    'del pedido y el archivo aún no está habilitado. '
-                    'Debemos validar primero la operación segura de venta '
-                    'y el almacenamiento privado en Supabase. '
-                    'No se ha registrado ni cobrado ningún pedido.'),
-                  actions: [TextButton(onPressed: () => Navigator.pop(context),
-                    child: const Text('ENTENDIDO'))]))
-            : null,
+          onPressed: !_sending && SupabaseCheckoutService.enabled &&
+            verifiedVariants && _accepted && _receipt != null && qrReady
+            ? _submit : null,
           icon: const Icon(Icons.lock_outline),
-          label: const Text('ENVIAR PEDIDO Y COMPROBANTE'),
+          label: Text(_sending ? 'ENVIANDO...' : 'ENVIAR PEDIDO Y COMPROBANTE'),
         ),
         const SizedBox(height: 12),
-        Text('El pedido no se confirma ni el comprobante se sube '
-          'hasta habilitar la operación transaccional segura.',
+        Text(SupabaseCheckoutService.enabled
+          ? 'El pedido queda pendiente hasta la revisión administrativa.'
+          : 'Envío real desactivado hasta verificar RPC, RLS e inventario.',
           textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
       ]),
     );
