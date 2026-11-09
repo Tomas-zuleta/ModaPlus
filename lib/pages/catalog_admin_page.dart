@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/admin_permissions.dart';
 import '../services/catalog_admin_service.dart';
 import 'suppliers_view.dart';
+import 'admin_domain_page.dart';
 
 /// Entrada administrativa por dominio; no ofrece CRUD genérico indiscriminado.
 class CatalogAdminPage extends StatelessWidget {
@@ -20,6 +21,22 @@ class CatalogAdminPage extends StatelessWidget {
         trailing: const Icon(Icons.chevron_right),
         onTap: () => Navigator.push(context, MaterialPageRoute(
           builder: (_) => const Scaffold(body: SafeArea(child: SuppliersView()))))),
+      const Divider(height: 32),
+      Text('OTROS MÓDULOS DE LA WEB',
+        style: Theme.of(context).textTheme.titleMedium),
+      const SizedBox(height: 6),
+      const Text('Consultas con permisos de Supabase. Las acciones que '
+        'requieren transacciones se habilitarán solo tras verificar sus RPC.'),
+      for (final item in adminDomainModules)
+        ListTile(
+          leading: Icon(item.icon),
+          title: Text(item.title),
+          subtitle: Text(item.description),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.push(context, MaterialPageRoute(
+            builder: (_) => AdminDomainPage(definition: item))),
+        ),
+      const Divider(height: 24),
       for (final module in const ['categorias', 'colores'])
         ListTile(
           leading: Icon(module == 'categorias' ? Icons.category_outlined : Icons.palette_outlined),
