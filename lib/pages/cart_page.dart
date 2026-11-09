@@ -161,7 +161,7 @@ class _CartPageState extends State<CartPage> {
 
 class _CartRow extends StatelessWidget {
   final CartItem item;
-  const _CartRow({required this.item});
+  const _CartRow({super.key, required this.item});
 
   @override
   Widget build(BuildContext context) {
