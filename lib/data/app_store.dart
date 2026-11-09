@@ -22,6 +22,7 @@ class AppStore extends ChangeNotifier {
     required String email,
     required UserRole role,
   }) {
+    cart.clear();
     session = UserSession(name: name, email: email, role: role);
     notifyListeners();
   }
@@ -60,8 +61,11 @@ class AppStore extends ChangeNotifier {
 
   void changeOrderStatus(Order order, OrderStatus status, {int? paid}) {
     order.status = status;
+    if (!order.status.next.contains(status)) return;
     if (status == OrderStatus.paid) order.paid = order.total;
-    if (status == OrderStatus.partial && paid != null) order.paid = paid;
+    if (status == OrderStatus.partial && paid != null) {
+      order.paid = paid.clamp(0, order.total);
+    }
     notifyListeners();
   }
     // ---------------- Carrito ----------------
@@ -72,18 +76,20 @@ class AppStore extends ChangeNotifier {
 
   void addToCart(CartItem item) {
     final index = cart.indexWhere((c) => c.sameLine(item));
+    if (item.quantity <= 0 || item.product.stock <= 0) return;
     if (index >= 0) {
       final merged = cart[index].quantity + item.quantity;
       cart[index].quantity =
           merged > item.product.stock ? item.product.stock : merged;
     } else {
+      item.quantity = item.quantity.clamp(1, item.product.stock);
       cart.add(item);
     }
     notifyListeners();
   }
 
   void setCartQuantity(CartItem item, int quantity) {
-    if (quantity < 1) return;
+    if (!cart.contains(item) || quantity < 1 || item.product.stock < 1) return;
     item.quantity = quantity > item.product.stock ? item.product.stock : quantity;
     notifyListeners();
   }
@@ -95,6 +101,11 @@ class AppStore extends ChangeNotifier {
 
   /// Convierte el carrito en un pedido (queda visible para el administrador).
   Order placeOrder() {
+    if (session == null) throw StateError('Inicia sesión antes de solicitar un pedido');
+    if (cart.isEmpty) throw StateError('El carrito está vacío');
+    if (cart.any((c) => c.quantity < 1 || c.quantity > c.product.stock)) {
+      throw StateError('Revisa las cantidades disponibles');
+    }
     final order = Order(
       id: nextOrderId(),
       clientName: session?.name ?? 'Cliente',

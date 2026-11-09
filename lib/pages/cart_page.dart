@@ -24,13 +24,22 @@ class _CartPageState extends State<CartPage> {
   bool _sending = false;
 
   Future<void> _request() async {
+    if (_sending) return;
     setState(() => _sending = true);
-    await Future.delayed(const Duration(milliseconds: 900));
-    if (!mounted) return;
-    final order = AppStore.instance.placeOrder();
-    Navigator.of(context).pushReplacement(
-      fadeRoute(OrderSuccessPage(order: order)),
-    );
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
+      final order = AppStore.instance.placeOrder();
+      Navigator.of(context).pushReplacement(
+        fadeRoute(OrderSuccessPage(order: order)),
+      );
+    } on StateError catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message)),
+      );
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
   }
 
   @override
