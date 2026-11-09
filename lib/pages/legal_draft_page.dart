@@ -29,8 +29,8 @@ class LegalDraftPage extends StatelessWidget {
         ('5. Garantías y devoluciones', 'Se respetarán los derechos de los '
           'consumidores conforme a la legislación colombiana aplicable. '
           'Las condiciones comerciales definitivas deben ser aprobadas por el negocio.'),
-        ('6. Contacto', 'Dirección, NIT, correo de atención y horario: '
-          'pendientes de confirmación.'),
+        ('6. Contacto', 'Referencia de ubicación del proyecto: Parque principal de San Cristóbal. '
+          'Dirección postal exacta, NIT, correo de atención y horario: pendientes de confirmación.'),
       ])
         Card(child: Padding(padding: const EdgeInsets.all(16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
