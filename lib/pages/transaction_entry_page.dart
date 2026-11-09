@@ -73,6 +73,13 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     return number == null || number < 0 ? 'Introduce un valor válido' : null;
   }
   double _number(String value) => double.parse(value.replaceAll(',', '.'));
+  DateTime _twoMonths(DateTime start) {
+    final monthIndex = start.month + 2;
+    final firstOfNext = DateTime(start.year, monthIndex + 1, 1);
+    final lastOfMonth = firstOfNext.subtract(const Duration(days: 1)).day;
+    return DateTime(start.year, monthIndex,
+      start.day > lastOfMonth ? lastOfMonth : start.day);
+  }
   Future<void> _save() async {
     if (_busy || !_confirmed || !_form.currentState!.validate()) return;
     if ((_return ? _sale : _party) == null || _lines.any((e) => e.variant == null)) {
@@ -87,11 +94,11 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       return;
     }
     final now = _date.text;
-    final total = _lines.fold<double>(0, (sum, line) =>
+    final total = _return ? 0.0 : _lines.fold<double>(0, (sum, line) =>
       sum + _number(line.quantity.text) * _number(line.price.text));
     final details = _lines.map((line) {
       final quantity = int.parse(line.quantity.text);
-      final price = _number(line.price.text);
+      final price = _return ? 0.0 : _number(line.price.text);
       if (_purchase) return <String, dynamic>{
         'id_compra': 0, 'id_variante': line.variant!,
         'cantidad': quantity, 'costo_unitario': price,
@@ -139,8 +146,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
         }, details),
         'separe' => await service.saveLayaway({
           'id_plan_separe': 0, 'id_cliente': _party, 'fecha_inicio': now,
-          'fecha_vencimiento': DateTime.parse(now).add(const Duration(days: 60))
-            .toIso8601String().substring(0, 10),
+          'fecha_vencimiento': _twoMonths(DateTime.parse(now)).toIso8601String().substring(0, 10),
           'estado': 'ACTIVO', 'abono_inicial': _number(_initial.text),
           'metodo_abono_inicial': _payment,
           'comprobante_inicial': null, 'comprobante_inicial_nombre': null,
