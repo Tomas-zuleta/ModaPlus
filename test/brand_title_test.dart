@@ -7,7 +7,13 @@ void main() {
     await tester.pumpWidget(const MaterialApp(
       home: Scaffold(body: Center(child: BrandTitle())),
     ));
+
+    // BrandTitle usa flutter_animate: dejar completar fade/slide antes
+    // de verificar el contenido visible y terminar el test sin animaciones.
+    await tester.pumpAndSettle();
+
     expect(find.text('MODA'), findsOneWidget);
     expect(find.text('PLUS'), findsOneWidget);
+    expect(find.text('+'), findsOneWidget);
   });
 }
