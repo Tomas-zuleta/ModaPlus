@@ -23,7 +23,7 @@ class ModaPlusApp extends StatelessWidget {
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
-      scaffoldBackgroundColor: dark ? const Color(0xFF111827) : AppColors.background,
+      scaffoldBackgroundColor: dark ? const Color(0xFF0F172A) : AppColors.background,
       fontFamily: 'Georgia',
       fontFamilyFallback: const ['Times New Roman', 'serif'],
       colorScheme: ColorScheme.fromSeed(
@@ -32,6 +32,13 @@ class ModaPlusApp extends StatelessWidget {
         primary: dark ? const Color(0xFF6EE7A8) : AppColors.primary,
       ),
       cardColor: dark ? const Color(0xFF1E293B) : Colors.white,
+      dividerColor: dark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+      cardTheme: CardThemeData(
+        color: dark ? const Color(0xFF1E293B) : Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: dark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: dark ? const Color(0xFF1E293B) : Colors.white,
         foregroundColor: dark ? Colors.white : AppColors.textDark,

@@ -1,144 +1,101 @@
 import 'package:flutter/material.dart';
-import '../data/app_store.dart';
-import '../data/catalog_data.dart';
-import '../models/order.dart';
-import '../utils/app_colors.dart';
-import '../utils/format.dart';
+import '../services/supabase_data_service.dart';
 
-/// Panel demostrativo calculado desde AppStore. NO son datos del servidor.
-class DashboardView extends StatelessWidget {
+/// Dashboard real de solo lectura. Nunca sustituye errores por cifras ficticias.
+class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
-
+  @override
+  State<DashboardView> createState() => _DashboardViewState();
+}
+class _DashboardViewState extends State<DashboardView> {
+  late Future<List<Map<String, dynamic>>> _sales;
+  @override
+  void initState() { super.initState(); _reload(); }
+  void _reload() => _sales = SupabaseDataService.instance.recentSalesForAdmin();
   @override
   Widget build(BuildContext context) {
-    final store = AppStore.instance;
-    return ListenableBuilder(listenable: store, builder: (context, _) {
-      final now = DateTime.now();
-      final orders = store.orders;
-      final pending = orders.where((o) => o.status == OrderStatus.pending).toList();
-      final paid = orders.where((o) => o.status == OrderStatus.paid ||
-          o.status == OrderStatus.delivered).toList();
-      final monthSales = paid.where((o) => o.createdAt.year == now.year &&
-          o.createdAt.month == now.month).fold<int>(0, (s, o) => s + o.total);
-      final todaySales = paid.where((o) => o.createdAt.year == now.year &&
-          o.createdAt.month == now.month && o.createdAt.day == now.day)
-          .fold<int>(0, (s, o) => s + o.total);
-      final lowStock = catalogProducts.where((p) => p.stock <= 5).toList();
-      final stock = catalogProducts.fold<int>(0, (s, p) => s + p.stock);
-      final months = List.generate(6, (i) {
-        final date = DateTime(now.year, now.month - 5 + i);
-        final total = paid.where((o) => o.createdAt.year == date.year &&
-            o.createdAt.month == date.month).fold<int>(0, (s, o) => s + o.total);
-        return (date, total);
-      });
-      final maxSales = months.fold<int>(1, (max, row) => row.$2 > max ? row.$2 : max);
-      return ListView(padding: const EdgeInsets.all(20), children: [
-        const Text('DASHBOARD', style: TextStyle(fontSize: 31,
-          fontWeight: FontWeight.w900, color: AppColors.textDark, letterSpacing: 1.2)),
-        const SizedBox(height: 6),
-        const Text('Vista de demostración · datos locales, no sincronizados',
-          style: TextStyle(color: AppColors.slate, fontSize: 12)),
-        const SizedBox(height: 20),
-        Wrap(spacing: 10, runSpacing: 10, children: [
-          _Metric('VENTAS DEL DÍA', formatCop(todaySales), Icons.today_rounded),
-          _Metric('VENTAS DEL MES', formatCop(monthSales), Icons.trending_up_rounded),
-          _Metric('STOCK ACTUAL', '$stock uds.', Icons.inventory_2_outlined),
-          _Metric('PEDIDOS PENDIENTES', '${pending.length}', Icons.pending_actions_rounded),
-          _Metric('PLANES SEPARE', '${store.activePlansCount}', Icons.bookmark_outline_rounded),
-          _Metric('STOCK BAJO', '${lowStock.length}', Icons.warning_amber_rounded),
-        ]),
-        const SizedBox(height: 24),
-        _Panel(title: 'VENTAS · ÚLTIMOS 6 MESES', child: SizedBox(
-          height: 175,
-          child: Row(crossAxisAlignment: CrossAxisAlignment.end,
-            children: months.map((entry) => Expanded(child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 5),
-              child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                Text(entry.$2 == 0 ? '0' : '${(entry.$2 / 1000000).toStringAsFixed(1)}M',
-                  style: const TextStyle(fontSize: 10, color: AppColors.slate)),
-                const SizedBox(height: 5),
-                AnimatedContainer(duration: const Duration(milliseconds: 500),
-                  height: 12 + (entry.$2 / maxSales) * 105,
-                  decoration: BoxDecoration(color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(6))),
-                const SizedBox(height: 7),
-                Text('${entry.$1.month}/${entry.$1.year % 100}',
-                  style: const TextStyle(fontSize: 10, color: AppColors.slate)),
-              ]),
-            ))).toList(),
-          ),
-        )),
-        const SizedBox(height: 15),
-        _Panel(title: 'ALERTAS DEL SISTEMA', child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (pending.isEmpty && lowStock.isEmpty)
-              const ListTile(leading: Icon(Icons.check_circle_outline, color: AppColors.primary),
-                title: Text('Sin alertas pendientes')),
-            for (final order in pending.take(5))
-              ListTile(dense: true, leading: const Icon(Icons.shopping_bag_outlined,
-                color: AppColors.primary), title: Text('Pedido ${order.id} pendiente'),
-                subtitle: Text('${order.clientName} · ${formatCop(order.total)}')),
-            for (final product in lowStock.take(5))
-              ListTile(dense: true, leading: const Icon(Icons.warning_amber_rounded,
-                color: Colors.orange), title: Text('Stock bajo: ${product.name}'),
-                subtitle: Text('${product.stock} unidades disponibles')),
-          ],
-        )),
-        const SizedBox(height: 15),
-        _Panel(title: 'ÚLTIMOS PEDIDOS', child: Column(children: [
-          for (final order in orders.take(5))
-            ListTile(dense: true,
-              title: Text('${order.id} · ${order.clientName}'),
-              subtitle: Text(order.status.label),
-              trailing: Text(formatCop(order.total),
-                style: const TextStyle(fontWeight: FontWeight.bold))),
-        ])),
-      ]);
-    });
+    final theme = Theme.of(context);
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _sales,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('No se pudo cargar el dashboard desde Supabase.'),
+            const SizedBox(height: 12),
+            FilledButton(onPressed: () => setState(_reload),
+              child: const Text('Reintentar')),
+          ]));
+        }
+        final rows = snapshot.data ?? [];
+        final now = DateTime.now();
+        final month = rows.where((r) {
+          final d = DateTime.tryParse((r['fecha_venta'] ?? '').toString());
+          return d != null && d.year == now.year && d.month == now.month;
+        }).toList();
+        final today = month.where((r) {
+          final d = DateTime.tryParse((r['fecha_venta'] ?? '').toString());
+          return d != null && d.day == now.day;
+        }).toList();
+        int total(Iterable<Map<String, dynamic>> list) => list.fold(0,
+          (sum, r) => sum + ((r['total_venta'] as num?)?.toInt() ?? 0));
+        final pending = rows.where((r) =>
+          ['PENDIENTE', 'PENDIENTE_APROBACION'].contains(
+            (r['estado'] ?? '').toString().toUpperCase())).toList();
+        Widget metric(String title, String value, IconData icon) => SizedBox(
+          width: (MediaQuery.sizeOf(context).width - 52) / 2,
+          child: Card(child: Padding(padding: const EdgeInsets.all(14),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [Expanded(child: Text(title,
+                style: theme.textTheme.labelSmall)),
+                Icon(icon, color: theme.colorScheme.primary)]),
+              const SizedBox(height: 14),
+              FittedBox(child: Text(value, style: theme.textTheme.titleLarge)),
+            ]))));
+        return RefreshIndicator(onRefresh: () async {
+          setState(_reload);
+          await _sales;
+        }, child: ListView(padding: const EdgeInsets.all(18), children: [
+          Text('PANEL PRINCIPAL', style: theme.textTheme.headlineSmall),
+          const SizedBox(height: 5),
+          Text('Datos reales · últimos ${rows.length} registros consultados',
+            style: theme.textTheme.bodySmall),
+          const SizedBox(height: 18),
+          Wrap(spacing: 10, runSpacing: 10, children: [
+            metric('VENTAS DEL DÍA', '$ ${total(today)}', Icons.today),
+            metric('VENTAS DEL MES', '$ ${total(month)}', Icons.trending_up),
+            metric('REGISTROS CONSULTADOS', '${rows.length}', Icons.receipt_long),
+            metric('PENDIENTES', '${pending.length}', Icons.pending_actions),
+          ]),
+          const SizedBox(height: 18),
+          Card(child: Padding(padding: const EdgeInsets.all(15),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('ALERTAS DE PEDIDOS', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 10),
+              if (pending.isEmpty) const Text('Sin pedidos pendientes en los registros consultados'),
+              for (final r in pending.take(10))
+                ListTile(leading: const Icon(Icons.notifications_active_outlined),
+                  title: Text('Pedido #${r['id_venta']} pendiente'),
+                  subtitle: Text('Estado: ${r['estado']}')),
+            ]))),
+          const SizedBox(height: 15),
+          Card(child: Padding(padding: const EdgeInsets.all(15),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('ÚLTIMAS VENTAS', style: theme.textTheme.titleMedium),
+              for (final r in rows.take(8))
+                ListTile(title: Text('Factura #${r['id_venta']}'),
+                  subtitle: Text('${r['estado']} · ${r['fecha_venta']}'),
+                  trailing: Text('$ ${r['total_venta'] ?? 0}')),
+            ]))),
+          const SizedBox(height: 12),
+          Text('Vista parcial (máximo 100 ventas). Las cifras no representan '
+            'necesariamente el total contable. Los pagos y el inventario '
+            'requieren validación del servidor.',
+            style: theme.textTheme.bodySmall),
+        ]));
+      },
+    );
   }
-}
-
-class _Metric extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  const _Metric(this.label, this.value, this.icon);
-  @override
-  Widget build(BuildContext context) => Container(
-    width: (MediaQuery.sizeOf(context).width - 50) / 2,
-    padding: const EdgeInsets.all(15),
-    decoration: BoxDecoration(color: Colors.white,
-      borderRadius: BorderRadius.circular(15),
-      border: Border.all(color: AppColors.panelBorder)),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [Expanded(child: Text(label, maxLines: 2,
-        style: const TextStyle(fontSize: 10, letterSpacing: .8,
-          color: AppColors.slate, fontWeight: FontWeight.bold))),
-        Icon(icon, size: 18, color: AppColors.primary)]),
-      const SizedBox(height: 12),
-      FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft,
-        child: Text(value, style: const TextStyle(fontSize: 20,
-          fontWeight: FontWeight.w900, color: AppColors.textDark))),
-    ]),
-  );
-}
-
-class _Panel extends StatelessWidget {
-  final String title;
-  final Widget child;
-  const _Panel({required this.title, required this.child});
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(17),
-    decoration: BoxDecoration(color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppColors.panelBorder)),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(title, style: const TextStyle(fontWeight: FontWeight.w900,
-        fontSize: 13, letterSpacing: .7, color: AppColors.textDark)),
-      const SizedBox(height: 17),
-      child,
-    ]),
-  );
 }

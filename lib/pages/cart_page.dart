@@ -24,22 +24,14 @@ class _CartPageState extends State<CartPage> {
   bool _sending = false;
 
   Future<void> _request() async {
-    if (_sending) return;
-    setState(() => _sending = true);
-    try {
-      await Future<void>.delayed(const Duration(milliseconds: 300));
-      if (!mounted) return;
-      final order = AppStore.instance.placeOrder();
-      Navigator.of(context).pushReplacement(
-        fadeRoute(OrderSuccessPage(order: order)),
-      );
-    } on StateError catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
-    } finally {
-      if (mounted) setState(() => _sending = false);
-    }
+    // Nunca confirmar una compra únicamente en memoria.
+    // Falta integrar el RPC transaccional de ventas e inventario existente.
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Los pedidos reales aún no están habilitados. '
+        'Estamos validando la conexión segura con Supabase.'),
+      duration: Duration(seconds: 5),
+    ));
   }
 
   @override

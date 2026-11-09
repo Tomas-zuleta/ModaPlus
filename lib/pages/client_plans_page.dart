@@ -1,52 +1,69 @@
 import 'package:flutter/material.dart';
-import '../utils/app_colors.dart';
+import '../services/supabase_data_service.dart';
 
-/// No mostramos planes locales de ejemplo de otros clientes.
-class ClientPlansPage extends StatelessWidget {
+class ClientPlansPage extends StatefulWidget {
   const ClientPlansPage({super.key});
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('PLAN SEPARE Y ABONOS')),
-    body: ListView(padding: const EdgeInsets.all(22), children: [
-      const Text('TUS PLANES SEPARE', style: TextStyle(fontSize: 26,
-        fontWeight: FontWeight.w900, color: AppColors.textDark)),
-      const SizedBox(height: 8),
-      const Text('Consulta tus prendas apartadas y los abonos registrados.'),
-      const SizedBox(height: 20),
-      Wrap(spacing: 9, runSpacing: 9, children: [
-        _Stat(label: 'TOTAL RESERVADO', value: formatZero),
-        _Stat(label: 'TOTAL ABONADO', value: formatZero),
-        _Stat(label: 'SALDO PENDIENTE', value: formatZero),
-      ]),
-      const SizedBox(height: 34),
-      const Icon(Icons.credit_card_off_outlined, size: 64, color: AppColors.primary),
-      const SizedBox(height: 14),
-      const Text('Aún no tienes planes vinculados',
-        textAlign: TextAlign.center, style: TextStyle(fontSize: 19,
-          fontWeight: FontWeight.bold)),
-      const SizedBox(height: 12),
-      const Text('Los planes reales aparecerán aquí cuando conectemos '
-        'tu cuenta al sistema de pedidos y abonos.',
-        textAlign: TextAlign.center),
-    ]),
-  );
+  State<ClientPlansPage> createState() => _ClientPlansPageState();
 }
-const formatZero = '\$ 0';
-class _Stat extends StatelessWidget {
-  final String label;
-  final String value;
-  const _Stat({required this.label, required this.value});
+
+class _ClientPlansPageState extends State<ClientPlansPage> {
+  late Future<List<Map<String, dynamic>>> _plans;
   @override
-  Widget build(BuildContext context) => Container(
-    width: 155, padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(color: Colors.white,
-      border: Border.all(color: AppColors.panelBorder),
-      borderRadius: BorderRadius.circular(12)),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: const TextStyle(fontSize: 10, color: AppColors.slate)),
-      const SizedBox(height: 8),
-      Text(value, style: const TextStyle(fontSize: 20,
-        fontWeight: FontWeight.w900, color: AppColors.textDark)),
+  void initState() {
+    super.initState();
+    _reload();
+  }
+  void _reload() => _plans = SupabaseDataService.instance.myPlans();
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('PLAN SEPARE Y ABONOS'), actions: [
+      IconButton(icon: const Icon(Icons.refresh), tooltip: 'Actualizar',
+        onPressed: () => setState(_reload)),
     ]),
+    body: FutureBuilder<List<Map<String, dynamic>>>(
+      future: _plans,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Padding(padding: const EdgeInsets.all(24),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.cloud_off_outlined, size: 44),
+              const SizedBox(height: 12),
+              const Text('No se pudieron consultar tus planes. '
+                'Comprueba tu conexión y los permisos de la cuenta.',
+                textAlign: TextAlign.center),
+              TextButton(onPressed: () => setState(_reload),
+                child: const Text('Reintentar')),
+            ])));
+        }
+        final rows = snapshot.data ?? [];
+        if (rows.isEmpty) {
+          return const Center(child: Padding(padding: EdgeInsets.all(28),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.credit_card_off_outlined, size: 64),
+              SizedBox(height: 15),
+              Text('Aún no tienes planes separe registrados',
+                textAlign: TextAlign.center),
+            ])));
+        }
+        return ListView(padding: const EdgeInsets.all(20), children: [
+          Text('${rows.length} PLANES REGISTRADOS',
+            style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 14),
+          for (final row in rows)
+            Card(child: ListTile(
+              leading: const Icon(Icons.bookmark_outline),
+              title: Text('Plan #${row['id_plan_separe']}'),
+              subtitle: Text('Estado: ${row['estado'] ?? 'Sin estado'}\n'
+                'Inicio: ${row['fecha_inicio'] ?? '-'}\n'
+                'Vencimiento: ${row['fecha_vencimiento'] ?? '-'}'),
+              isThreeLine: true,
+            )),
+        ]);
+      },
+    ),
   );
 }
