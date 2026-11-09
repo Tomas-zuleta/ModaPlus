@@ -7,7 +7,6 @@ import '../widgets/app_drawer.dart';
 import '../widgets/app_top_bar.dart';
 import '../widgets/sans_scope.dart';
 import 'dashboard_view.dart';
-import 'suppliers_view.dart';
 import 'catalog_admin_page.dart';
 import 'orders_view.dart';
 import 'plan_separe_view.dart';

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/admin_permissions.dart';
 import 'transaction_entry_page.dart';
+import 'loss_entry_page.dart';
 import '../services/administrative_transactions.dart';
 
 class AdminDomainDefinition {
@@ -130,8 +131,8 @@ class _AdminDomainPageState extends State<AdminDomainPage> {
         actions: [IconButton(tooltip: 'Actualizar',
           onPressed: () => setState(_refresh),
           icon: const Icon(Icons.refresh))]),
-      floatingActionButton: const ['compras', 'ventas', 'separe', 'devoluciones']
-        .contains(def.module) && const ['compras', 'ventas', 'planes_separe', 'devoluciones']
+      floatingActionButton: const ['compras', 'ventas', 'separe', 'devoluciones', 'perdidas']
+        .contains(def.module) && const ['compras', 'ventas', 'planes_separe', 'devoluciones', 'perdidas']
         .contains(def.table)
         ? FutureBuilder<bool>(
             future: AdminPermissions.instance.can(def.module, 'create'),
@@ -141,8 +142,9 @@ class _AdminDomainPageState extends State<AdminDomainPage> {
                   label: const Text('Registrar'),
                   onPressed: () async {
                     final saved = await Navigator.push<bool>(context,
-                      MaterialPageRoute(builder: (_) =>
-                        TransactionEntryPage(module: def.module)));
+                      MaterialPageRoute(builder: (_) => def.module == 'perdidas'
+                        ? const LossEntryPage()
+                        : TransactionEntryPage(module: def.module)));
                     if (saved == true && mounted) setState(_refresh);
                   },
                 ) : const SizedBox.shrink(),
