@@ -1,24 +1,21 @@
 import 'package:flutter/material.dart';
-
 class AppColors {
   AppColors._();
-
-  // Login / carga
-  static const Color background = Color(0xFFFCF7F5);
+  // Identidad visual compartida con ModaPlus web.
+  static const Color background = Color(0xFFF8FAFC);
   static const Color card = Colors.white;
-  static const Color cardBorder = Color(0xFFE8E2DF);
-  static const Color textDark = Color(0xFF1E2A47);
-  static const Color textMuted = Color(0xFF6B7280);
-  static const Color primary = Color(0xFF3B8B67);
-  static const Color error = Color(0xFFB3261E);
-
-  // Dashboard / catálogo
-  static const Color dashboardBg = Color(0xFFF8F9FC);
-  static const Color panel = Color(0xFFF0F2FF);
-  static const Color panelBorder = Color(0xFFD8DCF0);
+  static const Color cardBorder = Color(0xFFE2E8F0);
+  static const Color textDark = Color(0xFF1E293B);
+  static const Color textMuted = Color(0xFF64748B);
+  static const Color primary = Color(0xFF3D8B66);
+  static const Color acid = Color(0xFF6EE7A8);
+  static const Color error = Color(0xFFDC2626);
+  static const Color dashboardBg = Color(0xFFF8FAFC);
+  static const Color panel = Color(0xFFF1F5F9);
+  static const Color panelBorder = Color(0xFFE2E8F0);
   static const Color navy = Color(0xFF1E293B);
-  static const Color bar = Color(0xFFCCDCDD);
-  static const Color redAccent = Color(0xFFD32F2F);
-  static const Color mutedLabel = Color(0xFF4B5563);
+  static const Color bar = Color(0xFFCBD5E1);
+  static const Color redAccent = Color(0xFFDC2626);
+  static const Color mutedLabel = Color(0xFF475569);
   static const Color slate = Color(0xFF64748B);
 }
