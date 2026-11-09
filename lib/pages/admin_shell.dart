@@ -7,6 +7,7 @@ import '../widgets/app_drawer.dart';
 import '../widgets/app_top_bar.dart';
 import '../widgets/sans_scope.dart';
 import 'dashboard_view.dart';
+import 'admin_tables_view.dart';
 import 'orders_view.dart';
 import 'plan_separe_view.dart';
 import 'profile_view.dart';
@@ -25,6 +26,7 @@ class _AdminShellState extends State<AdminShell> {
     NavItemData(Icons.bar_chart_outlined, Icons.bar_chart, 'DASHBOARD'),
     NavItemData(Icons.bookmark_border, Icons.bookmark, 'SEPARE'),
     NavItemData(Icons.receipt_long_outlined, Icons.receipt_long, 'PEDIDOS'),
+    NavItemData(Icons.table_chart_outlined, Icons.table_chart, 'TABLAS'),
     NavItemData(Icons.person_outline, Icons.person, 'PERFIL'),
   ];
 
@@ -36,6 +38,8 @@ class _AdminShellState extends State<AdminShell> {
         return const PlanSepareView();
       case 2:
         return const OrdersView();
+      case 3:
+        return const AdminTablesView();
       default:
         return const ProfileView();
     }
