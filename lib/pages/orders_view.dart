@@ -57,11 +57,11 @@ class _OrdersViewState extends State<OrdersView> {
         const SizedBox(height: 15),
         SingleChildScrollView(scrollDirection: Axis.horizontal,
           child: Row(children: [
-            ChoiceChip(label: const Text('Todos'), selected: _status == null,
+            ChoiceChip(label: const Text('Todos'), showCheckmark: false, selected: _status == null,
               onSelected: (_) => setState(() => _status = null)),
             const SizedBox(width: 8),
             for (final status in statuses) ...[
-              ChoiceChip(label: Text(status), selected: _status == status,
+              ChoiceChip(label: Text(status), showCheckmark: false, selected: _status == status,
                 onSelected: (_) => setState(() => _status = status)),
               const SizedBox(width: 8),
             ],

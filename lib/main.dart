@@ -31,6 +31,12 @@ class ModaPlusApp extends StatelessWidget {
         brightness: brightness,
         primary: dark ? const Color(0xFF6EE7A8) : AppColors.primary,
       ),
+      chipTheme: ChipThemeData(
+        backgroundColor: dark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+        selectedColor: dark ? const Color(0xFF225A49) : const Color(0xFFD1FAE5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        labelStyle: TextStyle(color: dark ? Colors.white : const Color(0xFF0F172A)),
+      ),
       cardColor: dark ? const Color(0xFF1E293B) : Colors.white,
       dividerColor: dark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
       cardTheme: CardThemeData(

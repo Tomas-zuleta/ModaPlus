@@ -6,6 +6,18 @@ class AuthException implements Exception {
   const AuthException(this.message);
 }
 
+class CustomerRegistration {
+  final String tipoDocumento, identificacion, nombres, apellidos, telefono, direccion;
+  const CustomerRegistration({required this.tipoDocumento,
+    required this.identificacion, required this.nombres,
+    required this.apellidos, required this.telefono, required this.direccion});
+  Map<String, dynamic> toJson() => {
+    'tipoDocumento': tipoDocumento, 'identificacion': identificacion,
+    'nombres': nombres, 'apellidos': apellidos, 'telefono': telefono,
+    'direccion': direccion,
+  };
+}
+
 class AuthAccount {
   final String name;
   final String email;
@@ -21,6 +33,54 @@ class SupabaseAuthService {
 
   SupabaseClient get _db => Supabase.instance.client;
 
+  Future<bool> register(String email, String password,
+      CustomerRegistration customer) async {
+    try {
+      final response = await _db.auth.signUp(
+        email: email.trim().toLowerCase(), password: password,
+        data: {'customer': customer.toJson()});
+      if (response.user == null) throw const AuthException('No se pudo crear la cuenta.');
+      if (response.session != null) {
+        await activateCustomer(customer);
+        return true;
+      }
+      return false;
+    } on AuthApiException catch (e) {
+      if (e.code == 'user_already_exists' || e.code == 'email_exists') {
+        throw const AuthException('Ya existe una cuenta con ese correo.');
+      }
+      throw const AuthException('No se pudo registrar la cuenta. Verifica los datos.');
+    } on PostgrestException {
+      throw const AuthException('Cuenta creada, pero no se pudo activar el perfil. '
+        'Confirma tu correo e inicia sesión para reintentar.');
+    }
+  }
+
+  Future<void> activateCustomer(CustomerRegistration customer) async {
+    await _db.rpc('activar_cuenta_cliente', params: {
+      'p_tipo_documento': customer.tipoDocumento,
+      'p_identificacion': customer.identificacion,
+      'p_nombres': customer.nombres,
+      'p_apellidos': customer.apellidos,
+      'p_telefono': customer.telefono,
+      'p_direccion': customer.direccion.isEmpty ? null : customer.direccion,
+    });
+  }
+
+  Future<void> _activateFromMetadata() async {
+    final raw = _db.auth.currentUser?.userMetadata?['customer'];
+    if (raw is! Map) return;
+    final data = Map<String, dynamic>.from(raw);
+    await activateCustomer(CustomerRegistration(
+      tipoDocumento: (data['tipoDocumento'] ?? 'CC').toString(),
+      identificacion: (data['identificacion'] ?? '').toString(),
+      nombres: (data['nombres'] ?? '').toString(),
+      apellidos: (data['apellidos'] ?? '').toString(),
+      telefono: (data['telefono'] ?? '').toString(),
+      direccion: (data['direccion'] ?? '').toString(),
+    ));
+  }
+
   Future<AuthAccount> signIn(String email, String password) async {
     try {
       final response = await _db.auth.signInWithPassword(
@@ -29,7 +89,12 @@ class SupabaseAuthService {
         throw const AuthException('No se pudo verificar tu sesión.');
       }
       try {
-        return await currentAccount();
+        try {
+          return await currentAccount();
+        } on AuthException {
+          await _activateFromMetadata();
+          return await currentAccount();
+        }
       } catch (_) {
         await _db.auth.signOut();
         rethrow;

@@ -45,16 +45,32 @@ class _AuthPageState extends State<AuthPage> {
     }
   }
 
-  Future<void> _register(String name, String email, String password) async {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('El registro móvil requiere datos de identificación. '
-        'Por ahora crea tu cuenta desde la web e inicia sesión aquí.')));
+  Future<void> _register(CustomerRegistration customer, String email, String password) async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    try {
+      if (const String.fromEnvironment('SUPABASE_URL').isEmpty ||
+          const String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY').isEmpty) {
+        throw const AuthException('Configura Supabase antes de registrarte.');
+      }
+      final active = await SupabaseAuthService.instance.register(email, password, customer);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(active
+        ? 'Cuenta creada. Ya puedes iniciar sesión.'
+        : 'Cuenta creada. Confirma el enlace enviado a tu correo antes de ingresar.')));
+      setState(() => _isLogin = true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(
+        e is AuthException ? e.message : 'No se pudo completar el registro.')));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: AppColors.background,
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
     body: Stack(children: [
       Positioned(top: -100, right: -120, child: Container(width: 300, height: 300, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.acid.withValues(alpha: .3), width: 50)))),
       Positioned(top: 110, left: -45, child: Transform.rotate(angle: -.18, child: Container(width: 120, height: 14, color: AppColors.acid.withValues(alpha: .65)))),

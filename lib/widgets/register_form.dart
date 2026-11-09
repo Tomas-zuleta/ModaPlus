@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../utils/animations.dart';
+import '../services/supabase_auth_service.dart';
 import '../utils/validators.dart';
 import 'auth_card.dart';
 import 'auth_header.dart';
@@ -9,7 +10,7 @@ import 'primary_button.dart';
 
 class RegisterForm extends StatefulWidget {
   final bool isLoading;
-  final void Function(String name, String email, String password) onSubmit;
+  final void Function(CustomerRegistration customer, String email, String password) onSubmit;
 
   const RegisterForm({
     super.key,
@@ -24,6 +25,11 @@ class RegisterForm extends StatefulWidget {
 class _RegisterFormState extends State<RegisterForm> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
+  final _surnameCtrl = TextEditingController();
+  final _documentCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
+  String _documentType = 'CC';
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
@@ -31,6 +37,10 @@ class _RegisterFormState extends State<RegisterForm> {
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _surnameCtrl.dispose();
+    _documentCtrl.dispose();
+    _phoneCtrl.dispose();
+    _addressCtrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _confirmCtrl.dispose();
@@ -40,7 +50,14 @@ class _RegisterFormState extends State<RegisterForm> {
   void _submit() {
     if (_formKey.currentState!.validate()) {
       widget.onSubmit(
-        _nameCtrl.text.trim(),
+        CustomerRegistration(
+          tipoDocumento: _documentType,
+          identificacion: _documentCtrl.text.trim(),
+          nombres: _nameCtrl.text.trim(),
+          apellidos: _surnameCtrl.text.trim(),
+          telefono: _phoneCtrl.text.trim(),
+          direccion: _addressCtrl.text.trim(),
+        ),
         _emailCtrl.text.trim(),
         _passCtrl.text,
       );
@@ -60,11 +77,40 @@ class _RegisterFormState extends State<RegisterForm> {
               subtitle: 'Regístrate para comenzar a comprar.',
             ).stagger(0),
             AuthTextField(
-              label: 'Nombre completo',
-              hint: 'Tu nombre',
+              label: 'Nombres',
+              hint: 'Tus nombres',
               controller: _nameCtrl,
               validator: Validators.name,
             ).stagger(1),
+            const SizedBox(height: 20),
+            AuthTextField(label: 'Apellidos', hint: 'Tus apellidos',
+              controller: _surnameCtrl, validator: Validators.name).stagger(1),
+            const SizedBox(height: 20),
+            DropdownButtonFormField<String>(
+              value: _documentType,
+              decoration: const InputDecoration(labelText: 'Tipo de documento',
+                border: OutlineInputBorder()),
+              items: const [
+                DropdownMenuItem(value: 'CC', child: Text('Cédula de ciudadanía')),
+                DropdownMenuItem(value: 'CE', child: Text('Cédula de extranjería')),
+                DropdownMenuItem(value: 'TI', child: Text('Tarjeta de identidad')),
+                DropdownMenuItem(value: 'PASAPORTE', child: Text('Pasaporte')),
+              ],
+              onChanged: (v) => setState(() => _documentType = v ?? 'CC'),
+            ),
+            const SizedBox(height: 20),
+            AuthTextField(label: 'Identificación', hint: 'Número de documento',
+              controller: _documentCtrl,
+              validator: (v) => (v == null || v.trim().length < 5)
+                ? 'Ingresa un documento válido' : null).stagger(2),
+            const SizedBox(height: 20),
+            AuthTextField(label: 'Teléfono', hint: 'Número de contacto',
+              controller: _phoneCtrl, keyboardType: TextInputType.phone,
+              validator: (v) => (v == null || v.trim().length < 7)
+                ? 'Ingresa un teléfono válido' : null).stagger(2),
+            const SizedBox(height: 20),
+            AuthTextField(label: 'Dirección (opcional)', hint: 'Tu dirección',
+              controller: _addressCtrl).stagger(2),
             const SizedBox(height: 20),
             AuthTextField(
               label: 'Correo electrónico',

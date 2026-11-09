@@ -20,7 +20,6 @@ class AppPreferences extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _themeMode = switch (prefs.getString('theme_mode')) {
       'dark' => ThemeMode.dark,
-      'system' => ThemeMode.system,
       _ => ThemeMode.light,
     };
     _animations = prefs.getBool('animations') ?? true;
