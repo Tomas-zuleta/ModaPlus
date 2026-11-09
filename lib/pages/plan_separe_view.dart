@@ -53,22 +53,16 @@ class _PlanSepareViewState extends State<PlanSepareView> {
               children: [
                 const Text(
                   'Plan Separe',
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
-                  ),
+                  style: Theme.of(context).textTheme.headlineMedium,
                 ).stagger(0),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.only(bottom: 12),
-                  decoration: const BoxDecoration(
-                    border: Border(bottom: BorderSide(color: AppColors.panelBorder)),
+                  decoration: BoxDecoration(
+                    border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
                   ),
-                  child: const Text(
-                    'Reservas realizadas por los clientes',
-                    style: TextStyle(fontSize: 17, color: AppColors.textDark),
-                  ),
+                  child: Text('Reservas realizadas por los clientes',
+                    style: Theme.of(context).textTheme.bodyLarge),
                 ).stagger(1),
                 const SizedBox(height: 20),
                 FilterChipsRow<PlanFilter>(
@@ -111,8 +105,9 @@ class _PlanCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.panel,
-          border: Border.all(color: AppColors.panelBorder),
+          color: Theme.of(context).cardColor,
+          border: Border.all(color: Theme.of(context).dividerColor),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,7 +132,7 @@ class _PlanCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(plan.clientName,
-                style: const TextStyle(fontSize: 18, color: AppColors.textDark)),
+                style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 4),
             Text(
               '${plan.items.length} producto(s) · Vence ${formatDate(plan.dueDate)}',

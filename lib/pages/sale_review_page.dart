@@ -14,12 +14,16 @@ class SaleReviewPage extends StatefulWidget {
 class _SaleReviewPageState extends State<SaleReviewPage> {
   late Future<Map<String, dynamic>> _sale;
   String? _signedUrl;
+  Future<List<Map<String, dynamic>>>? _lines;
   bool _loadingReceipt = false;
   bool _rejecting = false;
   String? _receiptError;
   @override
   void initState() { super.initState(); _refresh(); }
-  void _refresh() => _sale = SupabaseDataService.instance.saleDetail(widget.saleId);
+  void _refresh() {
+    _sale = SupabaseDataService.instance.saleDetail(widget.saleId);
+    _lines = SupabaseDataService.instance.saleLines(widget.saleId);
+  }
 
   Future<void> _viewReceipt(String path) async {
     if (_loadingReceipt) return;
@@ -128,6 +132,33 @@ class _SaleReviewPageState extends State<SaleReviewPage> {
                 'requiere un visor seguro adicional.'),
           ],
           if (widget.isAdmin) ...[
+            const SizedBox(height: 18),
+            Text('Productos de la venta',
+              style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: _lines,
+              builder: (context, linesSnapshot) {
+                if (!linesSnapshot.hasData) {
+                  return const Card(child: Padding(padding: EdgeInsets.all(16),
+                    child: Text('No se pudieron verificar aún los detalles '
+                      'de esta venta. No apruebes sin revisarlos.')));
+                }
+                final lines = linesSnapshot.data!;
+                if (lines.isEmpty) {
+                  return const Card(child: ListTile(
+                    title: Text('No hay productos asociados')));
+                }
+                return Column(children: [
+                  for (final line in lines)
+                    Card(child: ListTile(
+                      title: Text('Variante #${line['id_variante'] ?? '—'}'),
+                      subtitle: Text('Cantidad: ${line['cantidad'] ?? '—'}'),
+                      trailing: Text('${line['subtotal'] ?? line['total'] ?? '—'} COP'),
+                    )),
+                ]);
+              },
+            ),
             const SizedBox(height: 20),
             if ((sale['estado'] ?? '').toString().toUpperCase() == 'PENDIENTE' &&
                 (sale['origen'] ?? '').toString().toUpperCase() == 'TIENDA_ONLINE')

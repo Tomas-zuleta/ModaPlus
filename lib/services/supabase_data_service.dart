@@ -16,6 +16,15 @@ class SupabaseDataService {
       params: {'p_id_venta': id, 'p_motivo': reason.trim()});
   }
 
+  /// Datos para revisión previa de una aprobación. Sin mutaciones.
+  /// Una venta puede requerir lógica adicional en guardar_venta.
+  Future<List<Map<String, dynamic>>> saleLines(int id) async {
+    if (_db.auth.currentUser == null) throw StateError('Sesión requerida');
+    final rows = await _db.from('detalles_venta')
+      .select('*').eq('id_venta', id);
+    return rows.map((r) => Map<String, dynamic>.from(r)).toList();
+  }
+
   Future<int> _clientId() async {
     final user = _db.auth.currentUser;
     if (user == null) throw StateError('Sesión requerida');
