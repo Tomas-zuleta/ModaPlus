@@ -5,6 +5,7 @@ class CartItem {
   final String size;
   final ProductColor color;
   int quantity;
+  int? get variantId => product.variantId;
 
   CartItem({
     required this.product,

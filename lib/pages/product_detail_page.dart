@@ -28,6 +28,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   int _qty = 1;
 
   void _add() {
+    if (widget.product.variantId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Solo puedes comprar variantes verificadas en Supabase.')));
+      return;
+    }
     final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
 
     if (_size == null || _color == null) {

@@ -60,6 +60,8 @@ class _CheckoutPaymentPageState extends State<CheckoutPaymentPage> {
   @override
   Widget build(BuildContext context) {
     final cart = AppStore.instance;
+    final verifiedVariants = cart.cart.isNotEmpty &&
+      cart.cart.every((item) => item.variantId != null);
     final theme = Theme.of(context);
     final qr = Uri.tryParse(_qr);
     final qrReady = qr != null && qr.scheme == 'https' && qr.host.isNotEmpty;
@@ -93,6 +95,10 @@ class _CheckoutPaymentPageState extends State<CheckoutPaymentPage> {
           const Card(child: Padding(padding: EdgeInsets.all(18),
             child: Text('El QR oficial de ModaPlus todavía no está configurado '
               'en la aplicación. No realices transferencias hasta confirmarlo.'))),
+        if (!verifiedVariants) const Card(child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Text('Tu carrito contiene productos de demostración. '
+            'Elige variantes reales desde el catálogo conectado a Supabase.'))),
         const SizedBox(height: 20),
         OutlinedButton.icon(onPressed: _selectReceipt,
           icon: const Icon(Icons.upload_file_outlined),
@@ -117,7 +123,7 @@ class _CheckoutPaymentPageState extends State<CheckoutPaymentPage> {
           onChanged: (value) => setState(() => _accepted = value ?? false)),
         const SizedBox(height: 16),
         FilledButton.icon(
-          onPressed: _accepted && _receipt != null && qrReady
+          onPressed: verifiedVariants && _accepted && _receipt != null && qrReady
             ? () => showDialog<void>(context: context, builder: (context) =>
                 AlertDialog(title: const Text('Validación pendiente'),
                   content: const Text('Tu comprobante está listo, pero el envío '
