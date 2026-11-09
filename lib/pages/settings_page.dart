@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/app_preferences.dart';
 import '../utils/app_colors.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -57,6 +58,31 @@ class SettingsPage extends StatelessWidget {
             secondary: const Icon(Icons.notifications_outlined),
             value: preferences.notifications,
             onChanged: preferences.setNotifications,
+          ),
+          const Divider(height: 35),
+          const Text('INFORMACIÓN DEL LOCAL', style: TextStyle(
+            color: AppColors.primary, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+          const ListTile(
+            leading: Icon(Icons.location_city_outlined),
+            title: Text('Medellín, Colombia'),
+            subtitle: Text('Dirección exacta pendiente de confirmación del negocio'),
+          ),
+          const ListTile(
+            leading: Icon(Icons.access_time_outlined),
+            title: Text('Horario de atención'),
+            subtitle: Text('Pendiente de confirmación'),
+          ),
+          const Divider(height: 35),
+          const Text('INFORMACIÓN LEGAL', style: TextStyle(
+            color: AppColors.primary, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+          ListTile(
+            leading: const Icon(Icons.description_outlined),
+            title: const Text('Términos y condiciones'),
+            subtitle: const Text('Borrador de la web, pendiente de aprobación legal'),
+            trailing: const Icon(Icons.open_in_new),
+            onTap: () => launchUrl(Uri.parse(
+              'https://github.com/MonsalveGod/ModaPlus/blob/main/docs/legal/terminos_y_condiciones.md'),
+              mode: LaunchMode.externalApplication),
           ),
           const SizedBox(height: 20),
           const Text('ModaPlus móvil · Preferencias locales',

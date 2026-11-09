@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../utils/animations.dart';
 import '../services/supabase_auth_service.dart';
@@ -30,6 +31,7 @@ class _RegisterFormState extends State<RegisterForm> {
   final _phoneCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   String _documentType = 'CC';
+  bool _acceptedDraft = false;
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
@@ -48,6 +50,11 @@ class _RegisterFormState extends State<RegisterForm> {
   }
 
   void _submit() {
+    if (!_acceptedDraft) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:
+        Text('Lee y acepta los términos antes de continuar.')));
+      return;
+    }
     if (_formKey.currentState!.validate()) {
       widget.onSubmit(
         CustomerRegistration(
@@ -136,7 +143,24 @@ class _RegisterFormState extends State<RegisterForm> {
               textInputAction: TextInputAction.done,
               validator: Validators.confirmPassword(() => _passCtrl.text),
             ).stagger(4),
-            const SizedBox(height: 28),
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: () => launchUrl(Uri.parse(
+                'https://github.com/MonsalveGod/ModaPlus/blob/main/docs/legal/terminos_y_condiciones.md'),
+                mode: LaunchMode.externalApplication),
+              icon: const Icon(Icons.open_in_new, size: 17),
+              label: const Text('Leer términos y condiciones (borrador)'),
+            ),
+            CheckboxListTile(
+              value: _acceptedDraft,
+              onChanged: widget.isLoading ? null :
+                (v) => setState(() => _acceptedDraft = v ?? false),
+              controlAffinity: ListTileControlAffinity.leading,
+              title: const Text('He leído y acepto los términos y condiciones'),
+              subtitle: const Text('Documento provisional pendiente de aprobación del negocio.'),
+              contentPadding: EdgeInsets.zero,
+            ),
+            const SizedBox(height: 16),
             PrimaryButton(
               text: 'Registrarme',
               isLoading: widget.isLoading,
