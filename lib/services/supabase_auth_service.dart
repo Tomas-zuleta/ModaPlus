@@ -30,7 +30,11 @@ class SupabaseAuthService {
     if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) {
       throw const AuthException('Configura una URL HTTPS válida para la conexión.');
     }
-    return uri.replace(path: '${uri.path.replaceFirst(RegExp(r"/+$"), "")}$path');
+    final parts = path.split('?');
+    return uri.replace(
+      path: '${uri.path.replaceFirst(RegExp(r"/+$"), "")}${parts.first}',
+      query: parts.length > 1 ? parts.skip(1).join('?') : null,
+    );
   }
 
   Future<Map<String, dynamic>> _getApi(String path, String token) async {

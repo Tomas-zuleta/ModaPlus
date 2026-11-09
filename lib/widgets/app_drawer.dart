@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/app_store.dart';
+import '../services/supabase_auth_service.dart';
 import '../models/user_role.dart';
 import '../pages/account_overview_page.dart';
 import '../pages/orders_view.dart';
@@ -84,7 +85,9 @@ class AppDrawer extends StatelessWidget {
               ),
           ])),
           Divider(color: Theme.of(context).dividerColor),
-          TextButton.icon(onPressed: () {
+          TextButton.icon(onPressed: () async {
+            await SupabaseAuthService.instance.signOut();
+            if (!context.mounted) return;
             AppStore.instance.endSession();
             Navigator.of(context).pushAndRemoveUntil(
               fadeRoute(const AuthPage()), (route) => false);
