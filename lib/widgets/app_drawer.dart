@@ -21,24 +21,24 @@ class AppDrawer extends StatelessWidget {
     ];
     return Drawer(
       width: MediaQuery.sizeOf(context).width * .9,
-      backgroundColor: AppColors.textDark,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       child: SafeArea(child: Padding(
         padding: const EdgeInsets.fromLTRB(27, 25, 25, 28),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             const Expanded(child: Text('MODA PLUS', style: TextStyle(
-              color: Colors.white, fontSize: 20, letterSpacing: 5, fontWeight: FontWeight.w300))),
+              color: Theme.of(context).colorScheme.onSurface, fontSize: 20, letterSpacing: 5, fontWeight: FontWeight.w300))),
             IconButton(
               tooltip: 'Cerrar menú',
               onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.close_rounded, color: Colors.white),
+              icon: Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface),
               style: IconButton.styleFrom(backgroundColor: Colors.white12),
             ),
           ]),
           const SizedBox(height: 30),
           Text('HOLA, ${name.toUpperCase()}', maxLines: 2,
             overflow: TextOverflow.ellipsis, style: const TextStyle(
-              color: AppColors.acid, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 2)),
+              color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 2)),
           const SizedBox(height: 36),
           ...entries.asMap().entries.map((entry) => TweenAnimationBuilder<double>(
             tween: Tween(begin: 0, end: 1),
@@ -58,18 +58,18 @@ class AppDrawer extends StatelessWidget {
                 child: Padding(padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
                   child: Row(children: [
                     Expanded(child: Text(entry.value.label, style: const TextStyle(
-                      color: Colors.white, fontSize: 27, fontWeight: FontWeight.w800,
+                      color: Theme.of(context).colorScheme.onSurface, fontSize: 27, fontWeight: FontWeight.w800,
                       letterSpacing: 1.4))),
-                    Icon(entry.value.icon, color: AppColors.acid, size: 22),
+                    Icon(entry.value.icon, color: AppColors.primary, size: 22),
                   ])),
               )),
             ),
           )),
           const Spacer(),
-          const Divider(color: Colors.white24),
+          Divider(color: Theme.of(context).dividerColor),
           const SizedBox(height: 14),
           Text(role == UserRole.admin ? 'ADMINISTRADOR' : 'CUENTA DE CLIENTE',
-            style: const TextStyle(color: Colors.white60, fontSize: 11, letterSpacing: 1.5)),
+            style: const TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11, letterSpacing: 1.5)),
           const SizedBox(height: 10),
           TextButton.icon(
             onPressed: () {
@@ -79,9 +79,9 @@ class AppDrawer extends StatelessWidget {
                 (route) => false,
               );
             },
-            icon: const Icon(Icons.logout_rounded, color: AppColors.acid),
+            icon: const Icon(Icons.logout_rounded, color: AppColors.primary),
             label: const Text('CERRAR SESIÓN', style: TextStyle(
-              color: Colors.white, letterSpacing: 1.5, fontWeight: FontWeight.bold)),
+              color: Theme.of(context).colorScheme.onSurface, letterSpacing: 1.5, fontWeight: FontWeight.bold)),
           ),
         ]),
       )),

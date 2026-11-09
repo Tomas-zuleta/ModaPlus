@@ -1,31 +1,57 @@
 import 'package:flutter/material.dart';
-
 import 'pages/auth_page.dart';
+import 'services/app_preferences.dart';
 import 'utils/app_colors.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppPreferences.instance.load();
   runApp(const ModaPlusApp());
 }
 
 class ModaPlusApp extends StatelessWidget {
   const ModaPlusApp({super.key});
 
+  ThemeData _theme(Brightness brightness) {
+    final dark = brightness == Brightness.dark;
+    return ThemeData(
+      useMaterial3: true,
+      brightness: brightness,
+      scaffoldBackgroundColor: dark ? const Color(0xFF111827) : AppColors.background,
+      fontFamily: 'Georgia',
+      fontFamilyFallback: const ['Times New Roman', 'serif'],
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AppColors.primary,
+        brightness: brightness,
+        primary: dark ? const Color(0xFF6EE7A8) : AppColors.primary,
+      ),
+      cardColor: dark ? const Color(0xFF1E293B) : Colors.white,
+      appBarTheme: AppBarTheme(
+        backgroundColor: dark ? const Color(0xFF1E293B) : Colors.white,
+        foregroundColor: dark ? Colors.white : AppColors.textDark,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Moda Plus',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: AppColors.background,
-        fontFamily: 'Georgia',
-        fontFamilyFallback: const ['Times New Roman', 'serif'],
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.primary,
-          primary: AppColors.primary,
-        ),
+    return ListenableBuilder(
+      listenable: AppPreferences.instance,
+      builder: (context, _) => MaterialApp(
+        title: 'Moda Plus',
+        debugShowCheckedModeBanner: false,
+        themeMode: AppPreferences.instance.themeMode,
+        theme: _theme(Brightness.light),
+        darkTheme: _theme(Brightness.dark),
+        builder: (context, child) {
+          final reduceMotion = !AppPreferences.instance.animations;
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(disableAnimations: reduceMotion),
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
+        home: const AuthPage(),
       ),
-      home: const AuthPage(),
     );
   }
 }
