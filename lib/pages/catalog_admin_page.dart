@@ -3,6 +3,7 @@ import '../services/admin_permissions.dart';
 import '../services/catalog_admin_service.dart';
 import 'suppliers_view.dart';
 import 'admin_domain_page.dart';
+import 'master_data_page.dart';
 
 /// Entrada administrativa por dominio; no ofrece CRUD genérico indiscriminado.
 class CatalogAdminPage extends StatelessWidget {
@@ -21,6 +22,15 @@ class CatalogAdminPage extends StatelessWidget {
         trailing: const Icon(Icons.chevron_right),
         onTap: () => Navigator.push(context, MaterialPageRoute(
           builder: (_) => const Scaffold(body: SafeArea(child: SuppliersView()))))),
+      for (final item in masterDataModules)
+        ListTile(
+          leading: Icon(item.icon),
+          title: Text(item.title),
+          subtitle: const Text('Consultar, crear, editar y cambiar estado'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.push(context, MaterialPageRoute(
+            builder: (_) => MasterDataPage(definition: item))),
+        ),
       const Divider(height: 32),
       Text('OTROS MÓDULOS DE LA WEB',
         style: Theme.of(context).textTheme.titleMedium),
