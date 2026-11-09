@@ -5,7 +5,6 @@ import '../models/cart_item.dart';
 import '../models/order.dart';
 import '../models/plan_separe.dart';
 import '../models/user_role.dart';
-import '../models/user_session.dart';
 
 class AppStore extends ChangeNotifier {
   AppStore._() {
@@ -29,12 +28,8 @@ class AppStore extends ChangeNotifier {
 
   void endSession() {
     session = null;
+    cart.clear();
     notifyListeners();
-    void endSession() {
-  session = null;
-  cart.clear();
-  notifyListeners();
-}
   }
 
   void updateProfile({required String name, required String phone}) {
