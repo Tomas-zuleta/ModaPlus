@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "com.example.modaplus"
-    compileSdk = flutter.compileSdkVersion
+    // AndroidX lifecycle requiere API 36 para compilar.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
