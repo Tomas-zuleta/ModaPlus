@@ -43,7 +43,7 @@ class _LoadingPageState extends State<LoadingPage>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 70000),
+      duration: const Duration(milliseconds: 1800),
     );
     _progress = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
     _controller.forward().then((_) => _goNext());
