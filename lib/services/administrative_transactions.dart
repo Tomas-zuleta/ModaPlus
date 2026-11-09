@@ -51,6 +51,64 @@ class AdministrativeTransactions {
     return (result as num).toInt();
   }
 
+  Future<void> annulLayaway(int id) async {
+    if (id <= 0) throw ArgumentError('Plan inválido');
+    await AdminPermissions.instance.require('separe', 'annul');
+    await _db.rpc('anular_plan_separe', params: {'p_id': id});
+  }
+
+  Future<void> annulPayment(int id) async {
+    if (id <= 0) throw ArgumentError('Abono inválido');
+    await AdminPermissions.instance.require('abonos', 'annul');
+    await _db.rpc('anular_abono', params: {'p_id': id});
+  }
+
+  Future<void> annulPurchase(int id) async {
+    if (id <= 0) throw ArgumentError('Compra inválida');
+    await AdminPermissions.instance.require('compras', 'annul');
+    final existing = await _db.from('compras').select('*')
+      .eq('id_compra', id).single();
+    if (existing['estado']?.toString().toUpperCase() == 'ANULADA') {
+      throw StateError('La compra ya está anulada');
+    }
+    final details = await _db.from('detalles_compra').select('*')
+      .eq('id_compra', id);
+    final purchase = <String, dynamic>{
+      'id_compra': id, 'id_proveedor': existing['id_proveedor'],
+      'fecha_compra': existing['fecha_compra'],
+      'fecha_registro': existing['fecha_registro'],
+      'factura': existing['numero_factura_proveedor'] ?? existing['factura'],
+      'tipo_pago': existing['tipo_pago'], 'estado': 'ANULADA',
+    };
+    final lines = details.map((e) {
+      final data = Map<String, dynamic>.from(e);
+      data.remove('id_detalle_compra');
+      return data;
+    }).toList();
+    await _db.rpc('guardar_compra', params: {
+      'p_compra': purchase, 'p_detalles': lines,
+    });
+  }
+
+  Future<void> manageLoss(String action, Map<String, dynamic> loss) async {
+    const allowed = ['guardar', 'anular', 'eliminar'];
+    if (!allowed.contains(action)) throw ArgumentError('Acción inválida');
+    await AdminPermissions.instance.require('perdidas',
+      action == 'anular' ? 'annul' : action == 'eliminar' ? 'delete' : 'create');
+    await _db.rpc('gestionar_perdida', params: {
+      'p_accion': action,
+      'p_perdida': {
+        'id_perdida': loss['id_perdida'],
+        'id_devolucion': loss['id_devolucion'],
+        'id_variante': loss['id_variante'],
+        'cantidad': loss['cantidad'],
+        'motivo': loss['motivo'],
+        'descripcion': loss['descripcion'] ?? '',
+        'estado': loss['estado'],
+      },
+    });
+  }
+
   Future<void> assignRoles(int userId, List<int> roleIds) async {
     await AdminPermissions.instance.require('usuarios', 'edit');
     if (userId <= 0 || roleIds.isEmpty) throw ArgumentError('Roles inválidos');

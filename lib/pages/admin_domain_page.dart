@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/admin_permissions.dart';
 import 'transaction_entry_page.dart';
+import '../services/administrative_transactions.dart';
 
 class AdminDomainDefinition {
   final String module, table, title, description, primaryKey;
@@ -72,6 +73,45 @@ class _AdminDomainPageState extends State<AdminDomainPage> {
   }
 
   void _refresh() => _future = _fetch();
+
+  Future<void> _annul(Map<String, dynamic> row) async {
+    final d = widget.definition;
+    final id = (row[d.primaryKey] as num?)?.toInt();
+    if (id == null) return;
+    final confirmed = await showDialog<bool>(context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirmar anulación'),
+        content: Text('¿Anular ${d.title.toLowerCase()} #$id? '
+          'La operación puede modificar inventario, reservas o saldos. '
+          'No se puede deshacer desde esta pantalla.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Anular')),
+        ],
+      ));
+    if (confirmed != true || !mounted) return;
+    try {
+      final service = AdministrativeTransactions.instance;
+      switch (d.table) {
+        case 'compras': await service.annulPurchase(id);
+        case 'planes_separe': await service.annulLayaway(id);
+        case 'abonos_separe': await service.annulPayment(id);
+        case 'perdidas':
+          await service.manageLoss('anular', row);
+        default: throw StateError('Anulación no soportada');
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Anulación confirmada por Supabase')));
+      setState(_refresh);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo anular: $error')));
+    }
+  }
   void _page(int offset) {
     setState(() { _offset = offset; _refresh(); });
   }
@@ -131,6 +171,19 @@ class _AdminDomainPageState extends State<AdminDomainPage> {
                   .where((key) => row[key] != null).take(2)
                   .map((key) => _format(row[key])).join(' · ')),
                 children: [
+                  if (const ['compras', 'planes_separe', 'abonos_separe', 'perdidas']
+                    .contains(def.table) &&
+                    !const ['ANULADA', 'ANULADO'].contains(
+                      row['estado']?.toString().toUpperCase()))
+                    FutureBuilder<bool>(
+                      future: AdminPermissions.instance.can(def.module, 'annul'),
+                      builder: (context, allowed) => allowed.data == true
+                        ? Padding(padding: const EdgeInsets.all(8),
+                            child: OutlinedButton.icon(
+                              onPressed: () => _annul(row),
+                              icon: const Icon(Icons.block_outlined),
+                              label: const Text('Anular')))
+                        : const SizedBox.shrink()),
                   for (final key in def.fields)
                     if (row.containsKey(key))
                       ListTile(dense: true, title: Text(key),
