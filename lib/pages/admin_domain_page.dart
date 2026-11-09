@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/admin_permissions.dart';
 import 'transaction_entry_page.dart';
 import 'loss_entry_page.dart';
+import 'administration_editor_page.dart';
 import '../services/administrative_transactions.dart';
 
 class AdminDomainDefinition {
@@ -131,8 +132,8 @@ class _AdminDomainPageState extends State<AdminDomainPage> {
         actions: [IconButton(tooltip: 'Actualizar',
           onPressed: () => setState(_refresh),
           icon: const Icon(Icons.refresh))]),
-      floatingActionButton: const ['compras', 'ventas', 'separe', 'devoluciones', 'perdidas']
-        .contains(def.module) && const ['compras', 'ventas', 'planes_separe', 'devoluciones', 'perdidas']
+      floatingActionButton: const ['compras', 'ventas', 'separe', 'devoluciones', 'perdidas', 'inventario', 'roles']
+        .contains(def.module) && const ['compras', 'ventas', 'planes_separe', 'devoluciones', 'perdidas', 'productos', 'variantes_producto', 'roles']
         .contains(def.table)
         ? FutureBuilder<bool>(
             future: AdminPermissions.instance.can(def.module, 'create'),
@@ -144,7 +145,9 @@ class _AdminDomainPageState extends State<AdminDomainPage> {
                     final saved = await Navigator.push<bool>(context,
                       MaterialPageRoute(builder: (_) => def.module == 'perdidas'
                         ? const LossEntryPage()
-                        : TransactionEntryPage(module: def.module)));
+                        : const ['productos', 'variantes_producto', 'roles'].contains(def.table)
+                          ? AdministrationEditorPage(table: def.table)
+                          : TransactionEntryPage(module: def.module)));
                     if (saved == true && mounted) setState(_refresh);
                   },
                 ) : const SizedBox.shrink(),
@@ -173,6 +176,21 @@ class _AdminDomainPageState extends State<AdminDomainPage> {
                   .where((key) => row[key] != null).take(2)
                   .map((key) => _format(row[key])).join(' · ')),
                 children: [
+                  if (const ['productos', 'variantes_producto', 'roles', 'usuarios']
+                    .contains(def.table))
+                    FutureBuilder<bool>(
+                      future: AdminPermissions.instance.can(def.module, 'edit'),
+                      builder: (context, allowed) => allowed.data == true
+                        ? OutlinedButton.icon(
+                            onPressed: () async {
+                              final changed = await Navigator.push<bool>(context,
+                                MaterialPageRoute(builder: (_) =>
+                                  AdministrationEditorPage(table: def.table, record: row)));
+                              if (changed == true && mounted) setState(_refresh);
+                            },
+                            icon: const Icon(Icons.edit_outlined),
+                            label: Text(def.table == 'usuarios' ? 'Asignar roles' : 'Editar'))
+                        : const SizedBox.shrink()),
                   if (const ['compras', 'planes_separe', 'abonos_separe', 'perdidas']
                     .contains(def.table) &&
                     !const ['ANULADA', 'ANULADO'].contains(
