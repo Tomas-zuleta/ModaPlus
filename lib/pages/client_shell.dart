@@ -73,6 +73,10 @@ class _ClientShellState extends State<ClientShell> {
             drawer: AppDrawer(
               name: store.session?.name ?? 'Cliente',
               role: UserRole.client,
+              onNavigate: (index) => setState(() {
+                if (index == 1) _category = null;
+                _index = index;
+              }),
             ),
             bottomNavigationBar: AppBottomNav(
               items: _items,

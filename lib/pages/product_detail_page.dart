@@ -7,12 +7,12 @@ import '../utils/animations.dart';
 import '../utils/app_colors.dart';
 import '../utils/format.dart';
 import '../widgets/detail_app_bar.dart';
+import '../widgets/cart_added_sheet.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/product_image.dart';
 import '../widgets/quantity_stepper.dart';
 import '../widgets/sans_scope.dart';
 import '../widgets/status_chip.dart';
-import 'cart_page.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final Product product;
@@ -46,17 +46,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       ),
     );
 
-    messenger.showSnackBar(
-      SnackBar(
-        content: const Text('Agregado al carrito'),
-        action: SnackBarAction(
-          label: 'VER CARRITO',
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const CartPage()),
-          ),
-        ),
-      ),
-    );
+    showCartAddedSheet(context, widget.product, _qty);
   }
 
   Widget _label(String text) {
