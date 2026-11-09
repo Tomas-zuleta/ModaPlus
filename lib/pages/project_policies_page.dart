@@ -18,7 +18,7 @@ class ProjectPoliciesPage extends StatelessWidget {
           'sobre retención de dinero requieren validación legal antes de automatizarse.'))),
       const SizedBox(height: 12),
       for (final item in const [
-        ('Plan Separe', 'Cuota inicial mínima de COP \\$20.000 por cada prenda. '
+        ('Plan Separe', 'Cuota inicial mínima de COP \$20.000 por cada prenda. '
           'Plazo máximo de dos meses. La ficha establece condiciones de anulación '
           'y tratamiento de abonos según el umbral del 50 %, pendientes de revisión legal.'),
         ('Abonos', 'El personal administrativo registra y consulta los abonos. '
