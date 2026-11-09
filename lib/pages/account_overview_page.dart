@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../data/app_store.dart';
 import '../models/order.dart';
 import '../utils/app_colors.dart';
-import '../utils/format.dart';
 import 'orders_view.dart';
 import 'client_plans_page.dart';
 import 'profile_view.dart';

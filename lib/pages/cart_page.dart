@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../data/app_store.dart';
 import '../models/cart_item.dart';
 import '../utils/app_colors.dart';
-import '../utils/fade_route.dart';
 import '../utils/format.dart';
 import '../widgets/detail_app_bar.dart';
 import '../widgets/empty_state.dart';
@@ -21,7 +20,6 @@ class CartPage extends StatefulWidget {
 }
 
 class _CartPageState extends State<CartPage> {
-  bool _sending = false;
 
   Future<void> _request() async {
     if (AppStore.instance.cart.isEmpty) return;
@@ -87,7 +85,7 @@ class _CartPageState extends State<CartPage> {
                           const SizedBox(height: 18),
                           PrimaryButton(
                             text: 'CONTINUAR AL PAGO',
-                            isLoading: _sending,
+                            isLoading: false,
                             onPressed: _request,
                           ),
                         ],

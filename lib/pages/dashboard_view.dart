@@ -91,8 +91,8 @@ class _DashboardViewState extends State<DashboardView> {
         const Text('Datos de Supabase · actualización manual y eventos de ventas'),
         const SizedBox(height: 15),
         Wrap(spacing: 8, runSpacing: 8, children: [
-          metric('VENTAS HOY (APROBADAS)', '$ ${total(today).toStringAsFixed(0)}', Icons.today),
-          metric('VENTAS MES (APROBADAS)', '$ ${total(month).toStringAsFixed(0)}', Icons.trending_up),
+          metric('VENTAS HOY (APROBADAS)', '\$ ${total(today).toStringAsFixed(0)}', Icons.today),
+          metric('VENTAS MES (APROBADAS)', '\$ ${total(month).toStringAsFixed(0)}', Icons.trending_up),
           metric('STOCK CONSULTADO', '${data.stock.fold<int>(0, (s, v) => s + ((v['stock_actual'] as num?)?.toInt() ?? 0))}', Icons.inventory_2_outlined),
           metric('PLANES ACTIVOS', '$activePlans', Icons.bookmark_outline),
           metric('PEDIDOS PENDIENTES', '${pending.length}', Icons.pending_actions),

@@ -75,7 +75,7 @@ class _OrdersViewState extends State<OrdersView> {
             title: Text('Factura #${order['id_venta']}'),
             subtitle: Text('${order['fecha_venta'] ?? '-'} · '
               '${order['estado'] ?? 'Sin estado'}'),
-            trailing: Text('$ ${order['total_venta'] ?? 0}',
+            trailing: Text('\$ ${order['total_venta'] ?? 0}',
               style: const TextStyle(fontWeight: FontWeight.bold)),
           )),
       ]));

@@ -23,8 +23,10 @@ class SupabaseCheckoutService {
     required String filename,
     required String mimeType,
   }) async {
-    if (!enabled) throw const CheckoutException(
-      'El checkout real aún requiere validación de seguridad.');
+    if (!enabled) {
+      throw const CheckoutException(
+        'El checkout real aún requiere validación de seguridad.');
+    }
     final user = _db.auth.currentUser;
     if (user == null) throw const CheckoutException('Debes iniciar sesión.');
     if (cart.isEmpty || cart.any((x) => x.variantId == null || x.quantity < 1)) {

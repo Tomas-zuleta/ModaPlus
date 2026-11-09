@@ -55,8 +55,9 @@ class _CheckoutPaymentPageState extends State<CheckoutPaymentPage> {
       }
       setState(() { _receipt = file; _error = null; });
     } catch (_) {
-      if (mounted) setState(() =>
-        _error = 'No se pudo abrir el selector de archivos.');
+      if (mounted) {
+        setState(() => _error = 'No se pudo abrir el selector de archivos.');
+      }
     }
   }
 
@@ -75,9 +76,10 @@ class _CheckoutPaymentPageState extends State<CheckoutPaymentPage> {
       AppStore.instance.clearCart();
       setState(() => _createdOrderId = id);
     } catch (e) {
-      if (mounted) setState(() => _error =
-        e is CheckoutException ? e.message :
-        'No se pudo confirmar el pedido. Revisa Mis compras antes de reintentar.');
+      if (mounted) {
+        setState(() => _error = e is CheckoutException ? e.message :
+          'No se pudo confirmar el pedido. Revisa Mis compras antes de reintentar.');
+      }
     } finally {
       if (mounted) setState(() => _sending = false);
     }
