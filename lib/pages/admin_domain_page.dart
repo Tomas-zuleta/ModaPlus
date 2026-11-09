@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/admin_permissions.dart';
+import 'transaction_entry_page.dart';
 
 class AdminDomainDefinition {
   final String module, table, title, description, primaryKey;
@@ -89,6 +90,24 @@ class _AdminDomainPageState extends State<AdminDomainPage> {
         actions: [IconButton(tooltip: 'Actualizar',
           onPressed: () => setState(_refresh),
           icon: const Icon(Icons.refresh))]),
+      floatingActionButton: const ['compras', 'ventas', 'separe', 'devoluciones']
+        .contains(def.module) && const ['compras', 'ventas', 'planes_separe', 'devoluciones']
+        .contains(def.table)
+        ? FutureBuilder<bool>(
+            future: AdminPermissions.instance.can(def.module, 'create'),
+            builder: (context, permission) => permission.data == true
+              ? FloatingActionButton.extended(
+                  icon: const Icon(Icons.add),
+                  label: const Text('Registrar'),
+                  onPressed: () async {
+                    final saved = await Navigator.push<bool>(context,
+                      MaterialPageRoute(builder: (_) =>
+                        TransactionEntryPage(module: def.module)));
+                    if (saved == true && mounted) setState(_refresh);
+                  },
+                ) : const SizedBox.shrink(),
+          )
+        : null,
       body: FutureBuilder<List<Map<String, dynamic>>>(future: _future,
         builder: (context, snapshot) {
           if (snapshot.hasError) return Center(child: Padding(
