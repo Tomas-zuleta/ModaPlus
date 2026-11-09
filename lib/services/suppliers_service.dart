@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'admin_permissions.dart';
 
 /// Proveedores: mismos campos de la web. RLS es la autoridad final.
 class SuppliersService {
@@ -7,7 +8,7 @@ class SuppliersService {
   SupabaseClient get _db => Supabase.instance.client;
 
   Future<List<Map<String, dynamic>>> list() async {
-    if (_db.auth.currentUser == null) throw StateError('Sesión requerida');
+    await AdminPermissions.instance.require('proveedores', 'view');
     final rows = await _db.from('proveedores')
       .select('id_proveedor,nit,razon_social,contacto,telefono,correo,direccion,estado')
       .order('razon_social').limit(300);
@@ -20,7 +21,7 @@ class SuppliersService {
     required String correo, required String direccion,
     required String estado,
   }) async {
-    if (_db.auth.currentUser == null) throw StateError('Sesión requerida');
+    await AdminPermissions.instance.require('proveedores', id == null ? 'create' : 'edit');
     if (nit.trim().isEmpty || razonSocial.trim().isEmpty) {
       throw ArgumentError('NIT y razón social son obligatorios');
     }
@@ -40,7 +41,7 @@ class SuppliersService {
   }
 
   Future<void> deactivate(int id) async {
-    if (_db.auth.currentUser == null) throw StateError('Sesión requerida');
+    await AdminPermissions.instance.require('proveedores', 'edit');
     await _db.from('proveedores').update({'estado': 'INACTIVO'})
       .eq('id_proveedor', id);
   }
