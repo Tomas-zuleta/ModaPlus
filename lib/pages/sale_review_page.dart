@@ -15,6 +15,7 @@ class _SaleReviewPageState extends State<SaleReviewPage> {
   late Future<Map<String, dynamic>> _sale;
   String? _signedUrl;
   bool _loadingReceipt = false;
+  bool _rejecting = false;
   String? _receiptError;
   @override
   void initState() { super.initState(); _refresh(); }
@@ -31,6 +32,40 @@ class _SaleReviewPageState extends State<SaleReviewPage> {
         'No tienes acceso al comprobante o no se pudo generar un enlace privado.');
     } finally {
       if (mounted) setState(() => _loadingReceipt = false);
+    }
+  }
+
+  Future<void> _reject() async {
+    final controller = TextEditingController();
+    final reason = await showDialog<String>(context: context, builder: (ctx) =>
+      AlertDialog(title: const Text('Rechazar comprobante'),
+        content: TextField(controller: controller, maxLines: 3,
+          decoration: const InputDecoration(
+            labelText: 'Motivo obligatorio', border: OutlineInputBorder())),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar')),
+          FilledButton(onPressed: () {
+            if (controller.text.trim().isNotEmpty) {
+              Navigator.pop(ctx, controller.text.trim());
+            }
+          }, child: const Text('Confirmar rechazo')),
+        ]));
+    controller.dispose();
+    if (reason == null || !mounted) return;
+    setState(() => _rejecting = true);
+    try {
+      await SupabaseDataService.instance.rejectOnlineSale(widget.saleId, reason);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Venta rechazada. Estado actualizado.')));
+      setState(_refresh);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('No se pudo rechazar la venta. Revisa permisos y estado.')));
+    } finally {
+      if (mounted) setState(() => _rejecting = false);
     }
   }
 
@@ -94,10 +129,16 @@ class _SaleReviewPageState extends State<SaleReviewPage> {
           ],
           if (widget.isAdmin) ...[
             const SizedBox(height: 20),
+            if ((sale['estado'] ?? '').toString().toUpperCase() == 'PENDIENTE' &&
+                (sale['origen'] ?? '').toString().toUpperCase() == 'TIENDA_ONLINE')
+              OutlinedButton.icon(
+                onPressed: _rejecting ? null : _reject,
+                icon: const Icon(Icons.cancel_outlined),
+                label: Text(_rejecting ? 'Procesando...' : 'Rechazar comprobante')),
             const Card(child: Padding(padding: EdgeInsets.all(16),
-              child: Text('Revisión administrativa: solo consulta. '
-                'Aprobar o rechazar requiere un RPC protegido que valide permisos, '
-                'estado e inventario en una sola transacción.'))),
+              child: Text('Aprobar pagos requiere validar el RPC guardar_venta '
+                'y su efecto transaccional sobre el inventario. '
+                'No se habilita hasta completar esas pruebas.'))),
           ],
         ]);
       }),

@@ -6,6 +6,16 @@ class SupabaseDataService {
   static final instance = SupabaseDataService._();
   SupabaseClient get _db => Supabase.instance.client;
 
+  /// RPC compartido con la web; la autorización la aplica Supabase.
+  Future<void> rejectOnlineSale(int id, String reason) async {
+    if (_db.auth.currentUser == null) throw StateError('Sesión requerida');
+    if (id <= 0 || reason.trim().isEmpty) {
+      throw ArgumentError('Venta y motivo obligatorios');
+    }
+    await _db.rpc('rechazar_venta_online',
+      params: {'p_id_venta': id, 'p_motivo': reason.trim()});
+  }
+
   Future<int> _clientId() async {
     final user = _db.auth.currentUser;
     if (user == null) throw StateError('Sesión requerida');
