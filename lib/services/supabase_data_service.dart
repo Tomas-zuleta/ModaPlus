@@ -18,6 +18,27 @@ class SupabaseDataService {
     return (account['id_cliente'] as num).toInt();
   }
 
+  Future<List<Map<String, dynamic>>> inventoryForAdmin() async {
+    final rows = await _db.from('variantes_producto')
+      .select('id_variante,id_producto,stock_actual,estado')
+      .order('id_variante', ascending: false).limit(500);
+    return rows.map((r) => Map<String, dynamic>.from(r)).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> salesForAdmin({int limit = 500}) async {
+    final rows = await _db.from('ventas')
+      .select('id_venta,id_cliente,fecha_venta,total_venta,estado,origen')
+      .order('fecha_venta', ascending: false).limit(limit);
+    return rows.map((r) => Map<String, dynamic>.from(r)).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> plansForAdmin() async {
+    final rows = await _db.from('planes_separe')
+      .select('id_plan_separe,id_cliente,fecha_inicio,fecha_vencimiento,estado')
+      .order('fecha_inicio', ascending: false).limit(500);
+    return rows.map((r) => Map<String, dynamic>.from(r)).toList();
+  }
+
   Future<List<Map<String, dynamic>>> myOrders() async {
     final id = await _clientId();
     final rows = await _db.from('ventas')
@@ -34,11 +55,6 @@ class SupabaseDataService {
     return rows.map((r) => Map<String, dynamic>.from(r)).toList();
   }
 
-  /// Vista limitada; requiere RLS y permisos administrativos en Supabase.
-  Future<List<Map<String, dynamic>>> recentSalesForAdmin() async {
-    final rows = await _db.from('ventas')
-      .select('id_venta,fecha_venta,total_venta,estado,origen')
-      .order('fecha_venta', ascending: false).limit(100);
-    return rows.map((r) => Map<String, dynamic>.from(r)).toList();
-  }
+  Future<List<Map<String, dynamic>>> recentSalesForAdmin() =>
+      salesForAdmin(limit: 100);
 }
