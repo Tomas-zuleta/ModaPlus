@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../data/app_store.dart';
-import '../models/user_role.dart';
 import '../services/supabase_auth_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/fade_route.dart';
@@ -26,6 +25,10 @@ class _AuthPageState extends State<AuthPage> {
   Future<void> _login(String email, String password) async {
     setState(() => _isLoading = true);
     try {
+      if (const String.fromEnvironment('SUPABASE_URL').isEmpty ||
+          const String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY').isEmpty) {
+        throw const AuthException('Configura Supabase para iniciar sesión.');
+      }
       final account = await SupabaseAuthService.instance.signIn(email, password);
       if (!mounted) return;
       AppStore.instance.startSession(
