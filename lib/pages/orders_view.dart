@@ -1,157 +1,115 @@
 import 'package:flutter/material.dart';
-
-import '../data/app_store.dart';
-import '../models/order.dart';
-import '../utils/animations.dart';
-import '../utils/app_colors.dart';
-import '../utils/format.dart';
-import '../widgets/empty_state.dart';
-import '../widgets/filter_chips.dart';
-import '../widgets/status_chip.dart';
-import 'order_detail_page.dart';
+import '../services/supabase_data_service.dart';
+import 'sale_review_page.dart';
+import 'transaction_entry_page.dart';
+import '../services/admin_permissions.dart';
 
 class OrdersView extends StatefulWidget {
   final bool onlyMine;
   const OrdersView({super.key, this.onlyMine = false});
-
   @override
   State<OrdersView> createState() => _OrdersViewState();
 }
 
 class _OrdersViewState extends State<OrdersView> {
-  OrderStatus? _filter;
-
+  late Future<List<Map<String, dynamic>>> _orders;
+  String? _status;
   @override
-  Widget build(BuildContext context) {
-    final store = AppStore.instance;
-
-    return ListenableBuilder(
-      listenable: store,
-      builder: (context, _) {
-        final email = (store.session?.email ?? '').toLowerCase();
-        final orders = store.orders.where((o) {
-          final mine = !widget.onlyMine || o.clientEmail.toLowerCase() == email;
-          final byStatus = _filter == null || o.status == _filter;
-          return mine && byStatus;
-        }).toList();
-
-        return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
-              children: [
-                Text(
-                  widget.onlyMine ? 'Mis Pedidos' : 'Pedidos',
-                  style: const TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
-                  ),
-                ).stagger(0),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  decoration: const BoxDecoration(
-                    border: Border(bottom: BorderSide(color: AppColors.panelBorder)),
-                  ),
-                  child: Text(
-                    widget.onlyMine
-                        ? 'Seguimiento de tus solicitudes'
-                        : 'Pedidos de todos los canales de atención',
-                    style: const TextStyle(fontSize: 17, color: AppColors.textDark),
-                  ),
-                ).stagger(1),
-                const SizedBox(height: 20),
-                FilterChipsRow<OrderStatus?>(
-                  values: <OrderStatus?>[null, ...OrderStatus.values],
-                  selected: _filter,
-                  labelOf: (s) => s == null ? 'Todos' : s.label,
-                  onSelected: (s) => setState(() => _filter = s),
-                ).stagger(2),
-                const SizedBox(height: 16),
-                if (orders.isEmpty)
-                  const EmptyState(
-                    icon: Icons.receipt_long_outlined,
-                    message: 'No hay pedidos para mostrar',
-                  )
-                else
-                  for (int i = 0; i < orders.length; i++)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _OrderCard(
-                        order: orders[i],
-                        isAdmin: !widget.onlyMine,
-                      ).stagger(i > 5 ? 5 : i + 3),
-                    ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+  void initState() { super.initState(); _reload(); }
+  Future<void> _newSale() async {
+    final saved = await Navigator.push<bool>(context,
+      MaterialPageRoute(builder: (_) => const TransactionEntryPage(module: 'ventas')));
+    if (saved == true && mounted) setState(_reload);
   }
-}
-
-class _OrderCard extends StatelessWidget {
-  final Order order;
-  final bool isAdmin;
-  const _OrderCard({required this.order, required this.isAdmin});
-
+  void _reload() {
+    _orders = widget.onlyMine
+      ? SupabaseDataService.instance.myOrders()
+      : SupabaseDataService.instance.recentSalesForAdmin();
+  }
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => OrderDetailPage(order: order, isAdmin: isAdmin),
-        ),
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.panel,
-          border: Border.all(color: AppColors.panelBorder),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  order.id,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                    color: AppColors.slate,
-                  ),
-                ),
-                const Spacer(),
-                StatusChip(label: order.status.label, color: order.status.color),
-              ],
-            ),
+  Widget build(BuildContext context) => FutureBuilder<List<Map<String, dynamic>>>(
+    future: _orders,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState != ConnectionState.done) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (snapshot.hasError) {
+        return Center(child: Padding(padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('No fue posible cargar los pedidos desde Supabase.',
+              textAlign: TextAlign.center),
             const SizedBox(height: 10),
-            if (isAdmin) ...[
-              Text(order.clientName,
-                  style: const TextStyle(fontSize: 18, color: AppColors.textDark)),
-              const SizedBox(height: 4),
+            TextButton(onPressed: () => setState(_reload),
+              child: const Text('Reintentar')),
+          ])));
+      }
+      final all = snapshot.data ?? [];
+      final statuses = all.map((o) => (o['estado'] ?? 'Sin estado').toString())
+        .toSet().toList()..sort();
+      final filtered = all.where((o) => _status == null ||
+        (o['estado'] ?? 'Sin estado').toString() == _status).toList();
+      return RefreshIndicator(onRefresh: () async {
+        setState(_reload);
+        await _orders;
+      }, child: ListView(padding: const EdgeInsets.all(20), children: [
+        Row(children: [
+          Expanded(child: Text(widget.onlyMine ? 'Mis compras' : 'Pedidos y ventas',
+            style: Theme.of(context).textTheme.headlineSmall)),
+          IconButton(onPressed: () => setState(_reload),
+            icon: const Icon(Icons.refresh)),
+        ]),
+        if (!widget.onlyMine) ...[
+          const SizedBox(height: 14),
+          FutureBuilder<bool>(
+            future: AdminPermissions.instance.can('ventas', 'create'),
+            builder: (context, allowed) => allowed.data == true
+              ? FilledButton.icon(
+                  onPressed: _newSale,
+                  icon: const Icon(Icons.add_shopping_cart_outlined),
+                  label: const Text('Nueva venta · Elegir cliente y productos'))
+              : const SizedBox.shrink(),
+          ),
+        ],
+        const SizedBox(height: 8),
+        Text('${all.length} registros consultados en Supabase',
+          style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 15),
+        SingleChildScrollView(scrollDirection: Axis.horizontal,
+          child: Row(children: [
+            ChoiceChip(label: const Text('Todos'), showCheckmark: false, selected: _status == null,
+              onSelected: (_) => setState(() => _status = null)),
+            const SizedBox(width: 8),
+            for (final status in statuses) ...[
+              ChoiceChip(label: Text(status), showCheckmark: false, selected: _status == status,
+                onSelected: (_) => setState(() => _status = status)),
+              const SizedBox(width: 8),
             ],
-            Text(
-              '${formatDate(order.createdAt)} · ${order.units} und. · ${order.channel}',
-              style: const TextStyle(fontSize: 13, color: AppColors.slate),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              formatCop(order.total),
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textDark,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+          ])),
+        const SizedBox(height: 16),
+        if (filtered.isEmpty)
+          const Card(child: Padding(padding: EdgeInsets.all(24),
+            child: Column(children: [
+              Icon(Icons.receipt_long_outlined, size: 48),
+              SizedBox(height: 12),
+              Text('Aún no hay ventas en esta categoría.'),
+              Text('Para comenzar, toca Nueva venta y elige un cliente y sus productos.'),
+            ]))),
+        for (final order in filtered)
+          Card(child: ListTile(
+            onTap: () {
+              final id = (order['id_venta'] as num?)?.toInt();
+              if (id != null) Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => SaleReviewPage(saleId: id,
+                  isAdmin: !widget.onlyMine)));
+            },
+            leading: const Icon(Icons.receipt_long_outlined),
+            title: Text('Factura #${order['id_venta']}'),
+            subtitle: Text('${order['fecha_venta'] ?? '-'} · '
+              '${order['estado'] ?? 'Sin estado'}'),
+            trailing: Text('\$ ${order['total_venta'] ?? 0}',
+              style: const TextStyle(fontWeight: FontWeight.bold)),
+          )),
+      ]));
+    },
+  );
 }

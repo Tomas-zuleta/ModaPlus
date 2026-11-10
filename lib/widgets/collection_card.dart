@@ -1,73 +1,62 @@
 import 'package:flutter/material.dart';
-
+import '../data/demo_images.dart';
 import '../utils/app_colors.dart';
 
-class CollectionCard extends StatelessWidget {
+class CollectionCard extends StatefulWidget {
   final String title;
   final List<Color> colors;
   final IconData icon;
   final String? assetPath;
   final bool centered;
   final VoidCallback onTap;
+  const CollectionCard({super.key, required this.title, required this.colors,
+    required this.icon, required this.onTap, this.assetPath, this.centered = false});
+  @override
+  State<CollectionCard> createState() => _CollectionCardState();
+}
 
-  const CollectionCard({
-    super.key,
-    required this.title,
-    required this.colors,
-    required this.icon,
-    required this.onTap,
-    this.assetPath,
-    this.centered = false,
-  });
-
+class _CollectionCardState extends State<CollectionCard> {
+  bool _pressed = false;
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: SizedBox(
-        height: 330,
-        width: double.infinity,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (assetPath != null)
-              Image.asset(assetPath!, fit: BoxFit.cover)
-            else ...[
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: colors,
-                  ),
-                ),
-              ),
-              Align(
-                alignment: const Alignment(0, -0.35),
-                child: Icon(icon, size: 130, color: Colors.white24),
-              ),
-            ],
-            centered ? _centeredLabel() : _cornerLabel(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _cornerLabel() {
-    return Align(
-      alignment: Alignment.bottomLeft,
-      child: Padding(
-        padding: const EdgeInsets.only(left: 26, bottom: 28),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 22),
-          color: const Color(0xEBFFFFFF),
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 22,
-              letterSpacing: 1,
-              color: AppColors.textDark,
+    final url = DemoImages.collections[widget.title];
+    return Listener(
+      onPointerDown: (_) => setState(() => _pressed = true),
+      onPointerUp: (_) => setState(() => _pressed = false),
+      onPointerCancel: (_) => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? .985 : 1,
+        duration: const Duration(milliseconds: 170),
+        child: Material(
+          color: widget.colors.first,
+          borderRadius: BorderRadius.circular(20),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: widget.onTap,
+            child: SizedBox(
+              height: 285,
+              child: Stack(fit: StackFit.expand, children: [
+                if (widget.assetPath != null)
+                  Image.asset(widget.assetPath!, fit: BoxFit.cover)
+                else if (url != null)
+                  Image.network(url, fit: BoxFit.cover,
+                    errorBuilder: (context, error, stack) => _fallback())
+                else
+                  _fallback(),
+                const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(
+                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Color(0xB8000000)],
+                ))),
+                Positioned(left: 22, right: 22, bottom: 24, child: Row(children: [
+                  Expanded(child: Text(widget.title.toUpperCase(),
+                    style: const TextStyle(color: Colors.white, fontSize: 27,
+                      fontWeight: FontWeight.w900, letterSpacing: 1.2))),
+                  Container(padding: const EdgeInsets.all(11),
+                    decoration: BoxDecoration(color: AppColors.acid,
+                      borderRadius: BorderRadius.circular(14)),
+                    child: const Icon(Icons.arrow_outward_rounded, color: AppColors.textDark)),
+                ])),
+              ]),
             ),
           ),
         ),
@@ -75,40 +64,8 @@ class CollectionCard extends StatelessWidget {
     );
   }
 
-  Widget _centeredLabel() {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 36),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 44,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-                shadows: [Shadow(blurRadius: 8, color: Colors.black26)],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
-              color: Colors.white,
-              child: const Text(
-                'EXPLORAR',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _fallback() => Container(
+    decoration: BoxDecoration(gradient: LinearGradient(colors: widget.colors)),
+    child: Center(child: Icon(widget.icon, size: 110, color: Colors.white54)),
+  );
 }

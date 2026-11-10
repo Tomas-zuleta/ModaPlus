@@ -1,76 +1,41 @@
 import 'package:flutter/material.dart';
 
-import '../utils/app_colors.dart';
-
+/// Filtros accesibles con selección visible en modo claro y oscuro.
 class FilterChipsRow<T> extends StatelessWidget {
   final List<T> values;
   final T selected;
   final String Function(T) labelOf;
   final ValueChanged<T> onSelected;
-
-  const FilterChipsRow({
-    super.key,
-    required this.values,
-    required this.selected,
-    required this.labelOf,
-    required this.onSelected,
-  });
+  const FilterChipsRow({super.key, required this.values, required this.selected,
+    required this.labelOf, required this.onSelected});
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (final v in values)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: _Chip(
-                label: labelOf(v),
-                selected: v == selected,
-                onTap: () => onSelected(v),
-              ),
+      child: Row(children: [
+        for (final value in values)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              label: Text(labelOf(value).toUpperCase()),
+              selected: selected == value,
+              showCheckmark: false,
+              avatar: selected == value
+                ? const Icon(Icons.check_circle, size: 17) : null,
+              onSelected: (_) => onSelected(value),
+              labelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                letterSpacing: .7,
+                color: selected == value ? colors.onPrimaryContainer : colors.onSurface),
+              selectedColor: colors.primaryContainer,
+              backgroundColor: colors.surfaceContainerLow,
+              side: BorderSide(color: selected == value
+                ? colors.primary : colors.outlineVariant),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _Chip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : Colors.white,
-          border: Border.all(
-            color: selected ? AppColors.primary : AppColors.panelBorder,
           ),
-        ),
-        child: Text(
-          label.toUpperCase(),
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-            color: selected ? Colors.white : AppColors.mutedLabel,
-          ),
-        ),
-      ),
+      ]),
     );
   }
 }

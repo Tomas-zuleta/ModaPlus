@@ -1,0 +1,65 @@
+name: Staging SQL smoke tests
+
+on:
+  push:
+    branches: [feature/mobile-api-foundation]
+    paths:
+      - 'supabase/staging/**'
+      - '.github/workflows/staging-sql.yml'
+  pull_request:
+    paths:
+      - 'supabase/staging/**'
+      - '.github/workflows/staging-sql.yml'
+
+jobs:
+  postgresql:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ci_only
+          POSTGRES_DB: modaplus_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      PGPASSWORD: ci_only
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGDATABASE: modaplus_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgres client
+        run: |
+          if ! command -v psql >/dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+          fi
+      - name: Create isolated auth stub and 23-table provisional schema
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/staging/tests/00_auth_fixture.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/staging/00_esquema_provisional.sql
+      - name: Apply staging migrations and synthetic admin
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/staging/02_lectura_y_datos_demo.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/staging/tests/01_admin_fixture.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/staging/04_corregir_login_admin.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/staging/05_datos_maestros_demo.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/staging/06_transacciones_demo.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/staging/07_devoluciones_perdidas_roles.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/staging/07_devoluciones_perdidas_roles.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/staging/07_permisos_roles_demo.sql
+      - name: Test purchases, sales, layaway payments and roles
+        run: psql -v ON_ERROR_STOP=1 -f supabase/staging/tests/02_smoke_transactions.sql
+      - name: Test returns, losses and their stock effects
+        run: psql -v ON_ERROR_STOP=1 -f supabase/staging/tests/03_smoke_returns_losses.sql
+      - name: Reject unauthorized writes and direct stock tampering
+        run: psql -v ON_ERROR_STOP=1 -f supabase/staging/tests/04_security.sql
+      - name: Re-run exact one-file installer copied by the user
+        run: psql -v ON_ERROR_STOP=1 -f supabase/staging/INSTALAR_05_06_07_en_prubasmoda.sql
+      - name: Verify returns, losses and role assignments
+        run: psql -v ON_ERROR_STOP=1 -f supabase/staging/tests/03_smoke_returns_losses.sql

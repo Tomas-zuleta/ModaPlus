@@ -1,0 +1,201 @@
+import 'package:flutter/material.dart';
+import '../services/supabase_data_service.dart';
+
+/// Consulta de venta y comprobante. No aprueba ni descuenta inventario:
+/// esas operaciones requieren una función SQL autorizada y transaccional.
+class SaleReviewPage extends StatefulWidget {
+  final int saleId;
+  final bool isAdmin;
+  const SaleReviewPage({super.key, required this.saleId, required this.isAdmin});
+  @override
+  State<SaleReviewPage> createState() => _SaleReviewPageState();
+}
+
+class _SaleReviewPageState extends State<SaleReviewPage> {
+  late Future<Map<String, dynamic>> _sale;
+  String? _signedUrl;
+  Future<List<Map<String, dynamic>>>? _lines;
+  bool _loadingReceipt = false;
+  bool _rejecting = false;
+  bool _sendingEmail = false;
+  String? _receiptError;
+  @override
+  void initState() { super.initState(); _refresh(); }
+  void _refresh() {
+    _sale = SupabaseDataService.instance.saleDetail(widget.saleId);
+    _lines = SupabaseDataService.instance.saleLines(widget.saleId);
+  }
+
+  Future<void> _viewReceipt(String path) async {
+    if (_loadingReceipt) return;
+    setState(() { _loadingReceipt = true; _receiptError = null; _signedUrl = null; });
+    try {
+      final url = await SupabaseDataService.instance.receiptSignedUrl(path);
+      if (mounted) setState(() => _signedUrl = url);
+    } catch (_) {
+      if (mounted) setState(() => _receiptError =
+        'No tienes acceso al comprobante o no se pudo generar un enlace privado.');
+    } finally {
+      if (mounted) setState(() => _loadingReceipt = false);
+    }
+  }
+
+  Future<void> _reject() async {
+    final controller = TextEditingController();
+    final reason = await showDialog<String>(context: context, builder: (ctx) =>
+      AlertDialog(title: const Text('Rechazar comprobante'),
+        content: TextField(controller: controller, maxLines: 3,
+          decoration: const InputDecoration(
+            labelText: 'Motivo obligatorio', border: OutlineInputBorder())),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar')),
+          FilledButton(onPressed: () {
+            if (controller.text.trim().isNotEmpty) {
+              Navigator.pop(ctx, controller.text.trim());
+            }
+          }, child: const Text('Confirmar rechazo')),
+        ]));
+    controller.dispose();
+    if (reason == null || !mounted) return;
+    setState(() => _rejecting = true);
+    try {
+      await SupabaseDataService.instance.rejectOnlineSale(widget.saleId, reason);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Venta rechazada. Estado actualizado.')));
+      setState(_refresh);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('No se pudo rechazar la venta. Revisa permisos y estado.')));
+    } finally {
+      if (mounted) setState(() => _rejecting = false);
+    }
+  }
+
+  Future<void> _sendApprovedEmail() async {
+    if (_sendingEmail) return;
+    setState(() => _sendingEmail = true);
+    try {
+      await SupabaseDataService.instance.sendApprovedEmail(widget.saleId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Solicitud de correo de aprobación procesada.')));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('No se pudo enviar el correo. Revisa la configuración del servidor.')));
+    } finally {
+      if (mounted) setState(() => _sendingEmail = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text('PEDIDO #${widget.saleId}')),
+    body: FutureBuilder<Map<String, dynamic>>(future: _sale,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('No se pudo consultar esta venta.'),
+            TextButton(onPressed: () => setState(_refresh),
+              child: const Text('Reintentar')),
+          ]));
+        }
+        final sale = snapshot.data!;
+        final path = sale['comprobante_url']?.toString() ?? '';
+        final name = sale['comprobante_nombre']?.toString() ?? '';
+        final image = name.toLowerCase().endsWith('.png') ||
+          name.toLowerCase().endsWith('.jpg') ||
+          name.toLowerCase().endsWith('.jpeg');
+        return ListView(padding: const EdgeInsets.all(20), children: [
+          Text('Estado: ${sale['estado'] ?? 'Sin estado'}',
+            style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 14),
+          Card(child: Column(children: [
+            ListTile(title: const Text('Total registrado'),
+              trailing: Text('${sale['total_venta'] ?? 0} COP')),
+            ListTile(title: const Text('Fecha'),
+              trailing: Text('${sale['fecha_venta'] ?? '-'}')),
+            ListTile(title: const Text('Medio de pago'),
+              subtitle: Text('${sale['metodo_pago'] ?? '-'}')),
+            if (sale['motivo_rechazo'] != null)
+              ListTile(title: const Text('Motivo de rechazo'),
+                subtitle: Text('${sale['motivo_rechazo']}')),
+          ])),
+          const SizedBox(height: 16),
+          Text('Comprobante', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          if (path.isEmpty) const Text('No hay comprobante asociado a esta venta.'),
+          if (path.isNotEmpty) ...[
+            Text(name.isEmpty ? 'Archivo adjunto' : name),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(onPressed: _loadingReceipt ? null
+              : () => _viewReceipt(path),
+              icon: const Icon(Icons.lock_outline),
+              label: Text(_loadingReceipt ? 'Consultando...' : 'Consultar comprobante privado')),
+            if (_receiptError != null)
+              Text(_receiptError!, style: TextStyle(
+                color: Theme.of(context).colorScheme.error)),
+            if (_signedUrl != null && image)
+              Image.network(_signedUrl!, height: 340, fit: BoxFit.contain,
+                errorBuilder: (_, error, stack) =>
+                  const Text('No se pudo mostrar la imagen del comprobante.')),
+            if (_signedUrl != null && !image)
+              const Text('El archivo no es una imagen. La vista previa de PDF '
+                'requiere un visor seguro adicional.'),
+          ],
+          if (widget.isAdmin) ...[
+            if ((sale['estado'] ?? '').toString().toUpperCase() == 'APROBADA')
+              OutlinedButton.icon(
+                onPressed: _sendingEmail ? null : _sendApprovedEmail,
+                icon: const Icon(Icons.mark_email_read_outlined),
+                label: Text(_sendingEmail ? 'Enviando...' : 'Enviar confirmación por correo'),
+              ),
+            const SizedBox(height: 18),
+            Text('Productos de la venta',
+              style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: _lines,
+              builder: (context, linesSnapshot) {
+                if (!linesSnapshot.hasData) {
+                  return const Card(child: Padding(padding: EdgeInsets.all(16),
+                    child: Text('No se pudieron verificar aún los detalles '
+                      'de esta venta. No apruebes sin revisarlos.')));
+                }
+                final lines = linesSnapshot.data!;
+                if (lines.isEmpty) {
+                  return const Card(child: ListTile(
+                    title: Text('No hay productos asociados')));
+                }
+                return Column(children: [
+                  for (final line in lines)
+                    Card(child: ListTile(
+                      title: Text('Variante #${line['id_variante'] ?? '—'}'),
+                      subtitle: Text('Cantidad: ${line['cantidad'] ?? '—'}'),
+                      trailing: Text('${line['subtotal'] ?? line['total'] ?? '—'} COP'),
+                    )),
+                ]);
+              },
+            ),
+            const SizedBox(height: 20),
+            if ((sale['estado'] ?? '').toString().toUpperCase() == 'PENDIENTE' &&
+                (sale['origen'] ?? '').toString().toUpperCase() == 'TIENDA_ONLINE')
+              OutlinedButton.icon(
+                onPressed: _rejecting ? null : _reject,
+                icon: const Icon(Icons.cancel_outlined),
+                label: Text(_rejecting ? 'Procesando...' : 'Rechazar comprobante')),
+            const Card(child: Padding(padding: EdgeInsets.all(16),
+              child: Text('Aprobar pagos requiere validar el RPC guardar_venta '
+                'y su efecto transaccional sobre el inventario. '
+                'No se habilita hasta completar esas pruebas.'))),
+          ],
+        ]);
+      }),
+  );
+}

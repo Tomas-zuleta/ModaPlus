@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../data/app_store.dart';
 import '../models/user_role.dart';
-import '../utils/app_colors.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/app_top_bar.dart';
 import '../widgets/sans_scope.dart';
 import 'dashboard_view.dart';
+import 'catalog_admin_page.dart';
 import 'orders_view.dart';
 import 'plan_separe_view.dart';
 import 'profile_view.dart';
@@ -23,10 +23,11 @@ class _AdminShellState extends State<AdminShell> {
   int _index = 0;
 
   static const List<NavItemData> _items = [
-    NavItemData(Icons.bar_chart_outlined, Icons.bar_chart, 'DASHBOARD'),
-    NavItemData(Icons.bookmark_border, Icons.bookmark, 'SEPARE'),
+    NavItemData(Icons.bar_chart_outlined, Icons.bar_chart, 'INICIO'),
+    NavItemData(Icons.bookmark_border, Icons.bookmark, 'SEPARES'),
     NavItemData(Icons.receipt_long_outlined, Icons.receipt_long, 'PEDIDOS'),
-    NavItemData(Icons.person_outline, Icons.person, 'PERFIL'),
+    NavItemData(Icons.local_shipping_outlined, Icons.local_shipping, 'GESTIÓN'),
+    NavItemData(Icons.person_outline, Icons.person, 'MI CUENTA'),
   ];
 
   Widget _page(int i) {
@@ -37,6 +38,8 @@ class _AdminShellState extends State<AdminShell> {
         return const PlanSepareView();
       case 2:
         return const OrdersView();
+      case 3:
+        return const CatalogAdminPage();
       default:
         return const ProfileView();
     }
@@ -52,7 +55,7 @@ class _AdminShellState extends State<AdminShell> {
         final name = store.session?.name ?? 'Administrador';
         return SansScope(
           child: Scaffold(
-            backgroundColor: AppColors.dashboardBg,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             appBar: const AppTopBar(),
             drawer: AppDrawer(name: name, role: UserRole.admin),
             bottomNavigationBar: AppBottomNav(

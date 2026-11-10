@@ -5,7 +5,6 @@ import '../models/cart_item.dart';
 import '../models/order.dart';
 import '../models/plan_separe.dart';
 import '../models/user_role.dart';
-import '../models/user_session.dart';
 
 class AppStore extends ChangeNotifier {
   AppStore._() {
@@ -23,18 +22,15 @@ class AppStore extends ChangeNotifier {
     required String email,
     required UserRole role,
   }) {
+    cart.clear();
     session = UserSession(name: name, email: email, role: role);
     notifyListeners();
   }
 
   void endSession() {
     session = null;
+    cart.clear();
     notifyListeners();
-    void endSession() {
-  session = null;
-  cart.clear();
-  notifyListeners();
-}
   }
 
   void updateProfile({required String name, required String phone}) {
@@ -64,9 +60,12 @@ class AppStore extends ChangeNotifier {
   }
 
   void changeOrderStatus(Order order, OrderStatus status, {int? paid}) {
+    if (!orders.contains(order) || !order.status.next.contains(status)) return;
     order.status = status;
     if (status == OrderStatus.paid) order.paid = order.total;
-    if (status == OrderStatus.partial && paid != null) order.paid = paid;
+    if (status == OrderStatus.partial && paid != null) {
+      order.paid = paid.clamp(0, order.total);
+    }
     notifyListeners();
   }
     // ---------------- Carrito ----------------
@@ -77,19 +76,40 @@ class AppStore extends ChangeNotifier {
 
   void addToCart(CartItem item) {
     final index = cart.indexWhere((c) => c.sameLine(item));
+    if (item.quantity <= 0 || item.product.stock <= 0) return;
+    // El stock pertenece a la variante, no a la presentación de talla/color.
+    // Evita repartir las mismas existencias entre varias líneas del carrito.
+    final otherQuantity = cart
+        .where((c) => c.variantId != null &&
+            c.variantId == item.variantId && !c.sameLine(item))
+        .fold<int>(0, (sum, c) => sum + c.quantity);
+    final available = item.product.stock - otherQuantity;
+    if (available <= 0) return;
     if (index >= 0) {
       final merged = cart[index].quantity + item.quantity;
       cart[index].quantity =
-          merged > item.product.stock ? item.product.stock : merged;
+          merged > available ? available : merged;
     } else {
+      item.quantity = item.quantity.clamp(1, available);
       cart.add(item);
     }
     notifyListeners();
   }
 
   void setCartQuantity(CartItem item, int quantity) {
-    if (quantity < 1) return;
-    item.quantity = quantity > item.product.stock ? item.product.stock : quantity;
+    if (!cart.contains(item) || quantity < 1 || item.product.stock < 1) return;
+    final otherQuantity = cart
+        .where((c) => !identical(c, item) && c.variantId != null &&
+            c.variantId == item.variantId)
+        .fold<int>(0, (sum, c) => sum + c.quantity);
+    final available = item.product.stock - otherQuantity;
+    if (available < 1) return;
+    item.quantity = quantity > available ? available : quantity;
+    notifyListeners();
+  }
+
+  void clearCart() {
+    cart.clear();
     notifyListeners();
   }
 
@@ -100,6 +120,11 @@ class AppStore extends ChangeNotifier {
 
   /// Convierte el carrito en un pedido (queda visible para el administrador).
   Order placeOrder() {
+    if (session == null) throw StateError('Inicia sesión antes de solicitar un pedido');
+    if (cart.isEmpty) throw StateError('El carrito está vacío');
+    if (cart.any((c) => c.quantity < 1 || c.quantity > c.product.stock)) {
+      throw StateError('Revisa las cantidades disponibles');
+    }
     final order = Order(
       id: nextOrderId(),
       clientName: session?.name ?? 'Cliente',

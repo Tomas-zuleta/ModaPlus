@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../pages/legal_draft_page.dart';
 
 import '../utils/animations.dart';
+import '../services/supabase_auth_service.dart';
 import '../utils/validators.dart';
 import 'auth_card.dart';
 import 'auth_header.dart';
@@ -9,7 +11,7 @@ import 'primary_button.dart';
 
 class RegisterForm extends StatefulWidget {
   final bool isLoading;
-  final void Function(String name, String email, String password) onSubmit;
+  final void Function(CustomerRegistration customer, String email, String password) onSubmit;
 
   const RegisterForm({
     super.key,
@@ -24,6 +26,12 @@ class RegisterForm extends StatefulWidget {
 class _RegisterFormState extends State<RegisterForm> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
+  final _surnameCtrl = TextEditingController();
+  final _documentCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
+  String _documentType = 'CC';
+  bool _acceptedDraft = false;
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
@@ -31,6 +39,10 @@ class _RegisterFormState extends State<RegisterForm> {
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _surnameCtrl.dispose();
+    _documentCtrl.dispose();
+    _phoneCtrl.dispose();
+    _addressCtrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _confirmCtrl.dispose();
@@ -38,9 +50,21 @@ class _RegisterFormState extends State<RegisterForm> {
   }
 
   void _submit() {
+    if (!_acceptedDraft) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:
+        Text('Lee y acepta los términos antes de continuar.')));
+      return;
+    }
     if (_formKey.currentState!.validate()) {
       widget.onSubmit(
-        _nameCtrl.text.trim(),
+        CustomerRegistration(
+          tipoDocumento: _documentType,
+          identificacion: _documentCtrl.text.trim(),
+          nombres: _nameCtrl.text.trim(),
+          apellidos: _surnameCtrl.text.trim(),
+          telefono: _phoneCtrl.text.trim(),
+          direccion: _addressCtrl.text.trim(),
+        ),
         _emailCtrl.text.trim(),
         _passCtrl.text,
       );
@@ -60,11 +84,40 @@ class _RegisterFormState extends State<RegisterForm> {
               subtitle: 'Regístrate para comenzar a comprar.',
             ).stagger(0),
             AuthTextField(
-              label: 'Nombre completo',
-              hint: 'Tu nombre',
+              label: 'Nombres',
+              hint: 'Tus nombres',
               controller: _nameCtrl,
               validator: Validators.name,
             ).stagger(1),
+            const SizedBox(height: 20),
+            AuthTextField(label: 'Apellidos', hint: 'Tus apellidos',
+              controller: _surnameCtrl, validator: Validators.name).stagger(1),
+            const SizedBox(height: 20),
+            DropdownButtonFormField<String>(
+              value: _documentType,
+              decoration: const InputDecoration(labelText: 'Tipo de documento',
+                border: OutlineInputBorder()),
+              items: const [
+                DropdownMenuItem(value: 'CC', child: Text('Cédula de ciudadanía')),
+                DropdownMenuItem(value: 'CE', child: Text('Cédula de extranjería')),
+                DropdownMenuItem(value: 'TI', child: Text('Tarjeta de identidad')),
+                DropdownMenuItem(value: 'PASAPORTE', child: Text('Pasaporte')),
+              ],
+              onChanged: (v) => setState(() => _documentType = v ?? 'CC'),
+            ),
+            const SizedBox(height: 20),
+            AuthTextField(label: 'Identificación', hint: 'Número de documento',
+              controller: _documentCtrl,
+              validator: (v) => (v == null || v.trim().length < 5)
+                ? 'Ingresa un documento válido' : null).stagger(2),
+            const SizedBox(height: 20),
+            AuthTextField(label: 'Teléfono', hint: 'Número de contacto',
+              controller: _phoneCtrl, keyboardType: TextInputType.phone,
+              validator: (v) => (v == null || v.trim().length < 7)
+                ? 'Ingresa un teléfono válido' : null).stagger(2),
+            const SizedBox(height: 20),
+            AuthTextField(label: 'Dirección (opcional)', hint: 'Tu dirección',
+              controller: _addressCtrl).stagger(2),
             const SizedBox(height: 20),
             AuthTextField(
               label: 'Correo electrónico',
@@ -90,7 +143,23 @@ class _RegisterFormState extends State<RegisterForm> {
               textInputAction: TextInputAction.done,
               validator: Validators.confirmPassword(() => _passCtrl.text),
             ).stagger(4),
-            const SizedBox(height: 28),
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const LegalDraftPage())),
+              icon: const Icon(Icons.description_outlined, size: 17),
+              label: const Text('Leer términos y condiciones (demo)'),
+            ),
+            CheckboxListTile(
+              value: _acceptedDraft,
+              onChanged: widget.isLoading ? null :
+                (v) => setState(() => _acceptedDraft = v ?? false),
+              controlAffinity: ListTileControlAffinity.leading,
+              title: const Text('He leído el documento de demostración'),
+              subtitle: const Text('La versión legal definitiva y el registro de consentimiento están pendientes.'),
+              contentPadding: EdgeInsets.zero,
+            ),
+            const SizedBox(height: 16),
             PrimaryButton(
               text: 'Registrarme',
               isLoading: widget.isLoading,

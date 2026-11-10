@@ -1,87 +1,74 @@
 import 'package:flutter/material.dart';
-
-import '../data/catalog_data.dart';
-import '../utils/animations.dart';
-import '../utils/app_colors.dart';
-import '../widgets/empty_state.dart';
-import '../widgets/filter_chips.dart';
+import '../models/product.dart';
+import '../services/real_catalog_service.dart';
 import '../widgets/product_tile.dart';
 
 class CatalogView extends StatefulWidget {
   final String? initialCategory;
   const CatalogView({super.key, this.initialCategory});
-
   @override
   State<CatalogView> createState() => _CatalogViewState();
 }
 
 class _CatalogViewState extends State<CatalogView> {
   late String? _category = widget.initialCategory;
+  late Future<List<Product>> _products;
+  @override
+  void initState() { super.initState(); _refresh(); }
+  void _refresh() => _products = RealCatalogService.instance.load();
 
   @override
-  Widget build(BuildContext context) {
-    final list = catalogProducts
-        .where((p) => _category == null || p.category == _category)
-        .toList();
-
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 640),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
-          children: [
-            const Text(
-              'Catálogo',
-              style: TextStyle(
-                fontSize: 34,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textDark,
-              ),
-            ).stagger(0),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.only(bottom: 12),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: AppColors.panelBorder)),
-              ),
-              child: Text(
-                '${list.length} producto(s) disponibles',
-                style: const TextStyle(fontSize: 17, color: AppColors.textDark),
-              ),
-            ).stagger(1),
-            const SizedBox(height: 20),
-            FilterChipsRow<String?>(
-              values: <String?>[null, ...categories],
-              selected: _category,
-              labelOf: (c) => c ?? 'Todos',
-              onSelected: (c) => setState(() => _category = c),
-            ).stagger(2),
-            const SizedBox(height: 20),
-            if (list.isEmpty)
-              const EmptyState(
-                icon: Icons.checkroom,
-                message: 'No hay productos en esta categoría',
-              )
-            else
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                mainAxisSpacing: 20,
-                crossAxisSpacing: 16,
-                childAspectRatio: 0.62,
-                children: [
-                  for (int i = 0; i < list.length; i++)
-                    KeyedSubtree(
-                      key: ValueKey(list[i].id),
-                      child: ProductTile(product: list[i])
-                          .stagger(i > 6 ? 6 : i),
-                    ),
-                ],
-              ),
+  Widget build(BuildContext context) => FutureBuilder<List<Product>>(
+    future: _products,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState != ConnectionState.done) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (snapshot.hasError) {
+        return Center(child: Padding(padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.cloud_off_outlined, size: 46),
+            const SizedBox(height: 12),
+            const Text('No fue posible consultar el catálogo real de ModaPlus.',
+              textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            FilledButton(onPressed: () => setState(_refresh),
+              child: const Text('Reintentar')),
+          ])));
+      }
+      final products = snapshot.data ?? [];
+      final categories = products.map((p) => p.category).toSet().toList()..sort();
+      final list = products.where((p) =>
+        _category == null || p.category == _category).toList();
+      return RefreshIndicator(onRefresh: () async {
+        setState(_refresh);
+        await _products;
+      }, child: ListView(padding: const EdgeInsets.all(20), children: [
+        Text('Catálogo', style: Theme.of(context).textTheme.headlineMedium),
+        const SizedBox(height: 8),
+        Text('${list.length} variantes disponibles · Datos de Supabase'),
+        const SizedBox(height: 14),
+        SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
+          ChoiceChip(label: const Text('Todos'), selected: _category == null,
+            onSelected: (_) => setState(() => _category = null)),
+          const SizedBox(width: 8),
+          for (final category in categories) ...[
+            ChoiceChip(label: Text(category), selected: _category == category,
+              onSelected: (_) => setState(() => _category = category)),
+            const SizedBox(width: 8),
           ],
-        ),
-      ),
-    );
-  }
+        ])),
+        const SizedBox(height: 18),
+        if (list.isEmpty) const Padding(padding: EdgeInsets.all(40),
+          child: Center(child: Text('No hay productos disponibles'))),
+        GridView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+          itemCount: list.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 16,
+            childAspectRatio: .62),
+          itemBuilder: (context, i) => ProductTile(
+            key: ValueKey(list[i].id), product: list[i])),
+      ]));
+    },
+  );
 }
