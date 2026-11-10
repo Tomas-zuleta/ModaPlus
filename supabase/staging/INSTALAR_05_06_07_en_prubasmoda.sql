@@ -1,8 +1,10 @@
--- MODAPLUS: INSTALACION UNICA DE STAGING (solo prubasmoda).
--- Necesita pasos 01-04 y el usuario de prueba SUPERADMIN.
--- NO USAR EN LA BASE ORIGINAL. Operaciones solo con datos ficticios.
+-- MODAPLUS: INSTALADOR DE PRUEBAS. SOLO para prubasmoda.
+-- NO ejecutar en la base original del compañero ni en produccion.
+-- Requiere pasos 00, 02 y 04 y el usuario SUPERADMIN de pruebas.
+-- SQL validado en PostgreSQL aislado por GitHub CI (ver ejecución).
 
--- ========= MODULO 1 =========
+-- ==== 05 DATOS MAESTROS ====
+
 -- MODAPLUS STAGING PASO 05: solo prubasmoda (NO PRODUCCION).
 -- Requiere pasos 01-04, usuario de pruebas SUPERADMIN y DEMO-001.
 -- Extiende los campos usados por Flutter y habilita CRUD de tablas maestras.
@@ -187,7 +189,8 @@ SELECT
       AND column_name = 'identificacion') AS campo_cliente;
 
 
--- ========= MODULO 2 =========
+-- ==== 06 TRANSACCIONES ====
+
 -- MODAPLUS STAGING PASO 06 — Operaciones comerciales ficticias.
 -- SOLO prubasmoda, después de pasos 01-05. NO PRODUCCION.
 -- El administrador debe estar autenticado; todas las operaciones son atómicas.
@@ -611,7 +614,8 @@ WHERE pronamespace='public'::regnamespace
 ORDER BY proname;
 
 
--- ========= MODULO 3 =========
+-- ==== 07 DEVOLUCIONES Y PERDIDAS ====
+
 -- MODAPLUS STAGING PASO 07. SOLO prubasmoda, después de 05 y 06.
 -- Solicitudes de devolución, pérdidas, roles y rechazo de pedidos.
 -- NO es el esquema original del proyecto de producción.
@@ -836,7 +840,8 @@ WHERE pronamespace='public'::regnamespace
 ORDER BY proname;
 
 
--- ========= MODULO 4 =========
+-- ==== 07 PERMISOS ROLES ====
+
 -- PASO 07. SOLO prubasmoda. Requiere esquema provisional y pasos previos.
 -- Permisos por rol se guardan juntos. El SUPERADMIN no puede modificarse.
 begin;
@@ -916,17 +921,3 @@ select
   has_function_privilege('authenticated',
     'public.modaplus_actualizar_permisos_rol(bigint,jsonb)', 'EXECUTE')
     as disponible_para_autenticados;
-
--- ========= RESULTADO FINAL =========
-SELECT
-  (SELECT count(*) FROM pg_proc WHERE pronamespace='public'::regnamespace
-    AND proname IN ('guardar_compra','guardar_venta','guardar_plan_separe',
-      'registrar_abono_separe','anular_plan_separe','anular_abono',
-      'guardar_devolucion','gestionar_perdida','actualizar_roles_usuario',
-      'rechazar_venta_online','modaplus_actualizar_permisos_rol'))
-      AS rpc_instalados,
-  (SELECT count(*) FROM pg_policies
-    WHERE schemaname='public' AND policyname='modaplus_admin_crud')
-      AS modulos_crud,
-  (SELECT count(*) FROM public.productos
-    WHERE referencia='DEMO-001') AS productos_demo;
