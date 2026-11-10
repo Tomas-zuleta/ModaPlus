@@ -57,6 +57,8 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/staging/tests/02_smoke_transactions.sql
       - name: Test returns, losses and their stock effects
         run: psql -v ON_ERROR_STOP=1 -f supabase/staging/tests/03_smoke_returns_losses.sql
+      - name: Reject unauthorized writes and direct stock tampering
+        run: psql -v ON_ERROR_STOP=1 -f supabase/staging/tests/04_security.sql
       - name: Re-run exact one-file installer copied by the user
         run: psql -v ON_ERROR_STOP=1 -f supabase/staging/INSTALAR_05_06_07_en_prubasmoda.sql
       - name: Verify returns, losses and role assignments
