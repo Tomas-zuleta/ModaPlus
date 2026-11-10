@@ -6,33 +6,28 @@ class AppPreferences extends ChangeNotifier {
   AppPreferences._();
   static final instance = AppPreferences._();
 
-  ThemeMode _themeMode = ThemeMode.light;
   bool _animations = true;
   bool _confirmRemove = true;
   bool _notifications = true;
 
-  ThemeMode get themeMode => _themeMode;
+  ThemeMode get themeMode => ThemeMode.light;
   bool get animations => _animations;
   bool get confirmRemove => _confirmRemove;
   bool get notifications => _notifications;
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
-    _themeMode = switch (prefs.getString('theme_mode')) {
-      'dark' => ThemeMode.dark,
-      _ => ThemeMode.light,
-    };
     _animations = prefs.getBool('animations') ?? true;
     _confirmRemove = prefs.getBool('confirm_remove') ?? true;
     _notifications = prefs.getBool('notifications') ?? true;
     notifyListeners();
   }
 
+  /// Conserva compatibilidad con versiones anteriores: no permite modo oscuro.
   Future<void> setThemeMode(ThemeMode mode) async {
-    _themeMode = mode;
-    notifyListeners();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('theme_mode', mode.name);
+    await prefs.setString('theme_mode', ThemeMode.light.name);
+    notifyListeners();
   }
 
   Future<void> setAnimations(bool value) async {

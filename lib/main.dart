@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'pages/auth_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'services/app_preferences.dart';
@@ -18,36 +19,44 @@ Future<void> main() async {
 class ModaPlusApp extends StatelessWidget {
   const ModaPlusApp({super.key});
 
-  ThemeData _theme(Brightness brightness) {
-    final dark = brightness == Brightness.dark;
+  // ModaPlus utiliza una apariencia clara permanente en todas las pantallas.
+  ThemeData _theme() {
+    const background = Colors.white;
+    final scheme = ColorScheme.fromSeed(
+      seedColor: AppColors.primary,
+      brightness: Brightness.light,
+      surface: background,
+    );
     return ThemeData(
       useMaterial3: true,
-      brightness: brightness,
-      scaffoldBackgroundColor: dark ? const Color(0xFF0F172A) : AppColors.background,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: background,
+      canvasColor: background,
+      dialogTheme: const DialogThemeData(backgroundColor: background),
+      bottomSheetTheme: const BottomSheetThemeData(backgroundColor: background),
       fontFamily: 'Georgia',
       fontFamilyFallback: const ['Times New Roman', 'serif'],
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primary,
-        brightness: brightness,
-        primary: dark ? const Color(0xFF6EE7A8) : AppColors.primary,
+      colorScheme: scheme,
+      chipTheme: const ChipThemeData(
+        backgroundColor: Color(0xFFF1F5F9),
+        selectedColor: Color(0xFFD1FAE5),
+        shape: StadiumBorder(),
+        labelStyle: TextStyle(color: AppColors.textDark),
       ),
-      chipTheme: ChipThemeData(
-        backgroundColor: dark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-        selectedColor: dark ? const Color(0xFF225A49) : const Color(0xFFD1FAE5),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        labelStyle: TextStyle(color: dark ? Colors.white : const Color(0xFF0F172A)),
-      ),
-      cardColor: dark ? const Color(0xFF1E293B) : Colors.white,
-      dividerColor: dark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+      cardColor: background,
+      dividerColor: AppColors.cardBorder,
       cardTheme: CardThemeData(
-        color: dark ? const Color(0xFF1E293B) : Colors.white,
+        color: background,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: dark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: AppColors.cardBorder),
+        ),
       ),
-      appBarTheme: AppBarTheme(
-        backgroundColor: dark ? const Color(0xFF1E293B) : Colors.white,
-        foregroundColor: dark ? Colors.white : AppColors.textDark,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: background,
+        foregroundColor: AppColors.textDark,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
       ),
     );
   }
@@ -59,14 +68,22 @@ class ModaPlusApp extends StatelessWidget {
       builder: (context, _) => MaterialApp(
         title: 'Moda Plus',
         debugShowCheckedModeBanner: false,
-        themeMode: AppPreferences.instance.themeMode,
-        theme: _theme(Brightness.light),
-        darkTheme: _theme(Brightness.dark),
+        themeMode: ThemeMode.light,
+        theme: _theme(),
         builder: (context, child) {
           final reduceMotion = !AppPreferences.instance.animations;
-          return MediaQuery(
-            data: MediaQuery.of(context).copyWith(disableAnimations: reduceMotion),
-            child: child ?? const SizedBox.shrink(),
+          return AnnotatedRegion<SystemUiOverlayStyle>(
+            value: const SystemUiOverlayStyle(
+              statusBarColor: Colors.white,
+              statusBarIconBrightness: Brightness.dark,
+              statusBarBrightness: Brightness.light,
+              systemNavigationBarColor: Colors.white,
+              systemNavigationBarIconBrightness: Brightness.dark,
+            ),
+            child: MediaQuery(
+              data: MediaQuery.of(context).copyWith(disableAnimations: reduceMotion),
+              child: child ?? const SizedBox.shrink(),
+            ),
           );
         },
         home: const AuthPage(),

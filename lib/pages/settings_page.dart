@@ -23,19 +23,12 @@ class SettingsPage extends StatelessWidget {
           const Text('APARIENCIA', style: TextStyle(
             color: AppColors.primary, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
           const SizedBox(height: 12),
-          ...[
-            (ThemeMode.light, 'Claro', Icons.light_mode_outlined),
-            (ThemeMode.dark, 'Oscuro', Icons.dark_mode_outlined),
-            (ThemeMode.system, 'Según el dispositivo', Icons.phone_android_rounded),
-          ].map((option) => RadioListTile<ThemeMode>(
-            title: Text(option.$2),
-            secondary: Icon(option.$3),
-            value: option.$1,
-            groupValue: preferences.themeMode,
-            onChanged: (value) {
-              if (value != null) preferences.setThemeMode(value);
-            },
-          )),
+          const ListTile(
+            leading: Icon(Icons.light_mode_outlined),
+            title: Text('Modo claro permanente'),
+            subtitle: Text('ModaPlus siempre se muestra con fondos claros, '
+              'independientemente de la apariencia del teléfono.'),
+          ),
           const Divider(height: 35),
           const Text('PREFERENCIAS', style: TextStyle(
             color: AppColors.primary, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
