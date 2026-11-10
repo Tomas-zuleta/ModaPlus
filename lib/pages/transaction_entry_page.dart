@@ -41,7 +41,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   bool get _return => widget.module == 'devoluciones';
   String get _partyTable => _purchase ? 'proveedores' : 'clientes';
   String get _partyId => _purchase ? 'id_proveedor' : 'id_cliente';
-  String get _partyLabel => _purchase ? 'razon_social' : 'nombres';
+  String get _partyLabel => _purchase ? 'nombre_proveedor' : 'nombres';
 
   @override
   void initState() { super.initState(); _load = _loadOptions(); }
@@ -221,8 +221,8 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
             TextFormField(controller: _description,
               decoration: const InputDecoration(labelText: 'Descripción')),
             DropdownButtonFormField<String>(value: _returnType,
-              decoration: const InputDecoration(labelText: 'Respuesta'),
-              items: const ['DINERO', 'SALDO_FAVOR'].map((v) =>
+              decoration: const InputDecoration(labelText: 'Respuesta (devolución de dinero)'),
+              items: const ['DINERO'].map((v) =>
                 DropdownMenuItem(value: v, child: Text(v))).toList(),
               onChanged: (v) => setState(() => _returnType = v ?? _returnType)),
           ],
