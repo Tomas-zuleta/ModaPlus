@@ -210,23 +210,36 @@ class _MasterDataPageState extends State<MasterDataPage> {
                       ? '${row['nombres'] ?? ''} ${row['apellidos'] ?? ''}'
                       : row['nombre_talla']?.toString() ?? 'Sin nombre'),
                     subtitle: Text('Estado: ${row['estado'] ?? '-'}'),
-                    trailing: PopupMenuButton<String>(
-                      tooltip: 'Acciones',
-                      enabled: !_saving,
-                      onSelected: (value) {
-                        if (value == 'edit') _edit(row);
-                        if (value == 'status') _changeStatus(row);
-                        if (value == 'delete') _delete(row);
-                      },
-                      itemBuilder: (_) => [
-                        PopupMenuItem(
+                    trailing: FutureBuilder<List<bool>>(
+                      future: Future.wait([_canEdit, _canDelete]),
+                      builder: (context, allowed) {
+                        final canEdit = allowed.data?.first ?? false;
+                        final canDelete = allowed.data?.last ?? false;
+                        if (!canEdit && !canDelete) {
+                          return const SizedBox.shrink();
+                        }
+                        return PopupMenuButton<String>(
+                          tooltip: 'Acciones',
                           enabled: !_saving,
-                          value: 'edit', child: const Text('Editar')),
-                        const PopupMenuItem(
-                          value: 'status', child: Text('Activar / Desactivar')),
-                        const PopupMenuItem(
-                          value: 'delete', child: Text('Eliminar')),
-                      ],
+                          onSelected: (value) {
+                            if (value == 'edit' && canEdit) _edit(row);
+                            if (value == 'status' && canEdit) _changeStatus(row);
+                            if (value == 'delete' && canDelete) _delete(row);
+                          },
+                          itemBuilder: (_) => [
+                            if (canEdit) ...[
+                              const PopupMenuItem(
+                                value: 'edit', child: Text('Editar')),
+                              const PopupMenuItem(
+                                value: 'status',
+                                child: Text('Activar / Desactivar')),
+                            ],
+                            if (canDelete)
+                              const PopupMenuItem(
+                                value: 'delete', child: Text('Eliminar')),
+                          ],
+                        );
+                      },
                     ),
                     onTap: () => _edit(row),
                   )),
