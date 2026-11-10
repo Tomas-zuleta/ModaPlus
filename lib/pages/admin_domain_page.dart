@@ -4,6 +4,7 @@ import '../services/admin_permissions.dart';
 import 'transaction_entry_page.dart';
 import 'loss_entry_page.dart';
 import 'administration_editor_page.dart';
+import 'role_permission_page.dart';
 import 'role_permissions_page.dart';
 import '../services/administrative_transactions.dart';
 
@@ -254,6 +255,24 @@ class _AdminDomainPageState extends State<AdminDomainPage> {
                               MaterialPageRoute(builder: (_) => RolePermissionsPage(
                                 roleId: (row['id_rol'] as num).toInt(),
                                 roleName: row['nombre_rol']?.toString() ?? 'Rol'))),
+                            icon: const Icon(Icons.admin_panel_settings_outlined),
+                            label: const Text('Configurar permisos'))
+                        : const SizedBox.shrink()),
+                  if (def.table == 'roles')
+                    FutureBuilder<bool>(
+                      future: AdminPermissions.instance.can('roles', 'edit'),
+                      builder: (context, allowed) => allowed.data == true
+                        ? OutlinedButton.icon(
+                            onPressed: () async {
+                              final changed = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(builder: (_) =>
+                                  RolePermissionPage(
+                                    roleId: (row['id_rol'] as num).toInt(),
+                                    roleName: row['nombre_rol']?.toString() ?? 'Rol',
+                                  )));
+                              if (changed == true && mounted) setState(_refresh);
+                            },
                             icon: const Icon(Icons.admin_panel_settings_outlined),
                             label: const Text('Configurar permisos'))
                         : const SizedBox.shrink()),
