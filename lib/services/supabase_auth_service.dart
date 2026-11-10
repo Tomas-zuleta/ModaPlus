@@ -142,11 +142,18 @@ class SupabaseAuthService {
     var admin = false;
     if (assigned.isNotEmpty) {
       final roles = await _db.from('roles')
-        .select('nombre_rol,estado,roles_permisos(modulos(codigo),permisos(codigo))')
+        .select('id_rol,nombre_rol,estado,roles_permisos(modulos(codigo),permisos(codigo))')
         .inFilter('id_rol', assigned);
       for (final role in roles) {
         if (role['estado'] != 'ACTIVO') continue;
-        if (role['nombre_rol'] == 'SUPER_ADMIN') { admin = true; break; }
+        final normalizedRole = (role['nombre_rol'] ?? '').toString()
+          .toUpperCase().replaceAll(RegExp(r'[ _-]'), '');
+        if ((role['id_rol'] as num?)?.toInt() == 1 ||
+            normalizedRole == 'SUPERADMIN' ||
+            normalizedRole == 'SUPERADMINISTRADOR') {
+          admin = true;
+          break;
+        }
         final permissions = role['roles_permisos'] as List<dynamic>? ?? [];
         if (permissions.any((entry) {
           final p = entry as Map;
