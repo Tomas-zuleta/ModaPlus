@@ -139,7 +139,7 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
 -- Nunca permitir que el CRUD genérico elimine o desactive el rol principal
 -- ni cambie sus datos desde un cliente autenticado.
 CREATE OR REPLACE FUNCTION public.modaplus_proteger_rol_admin()
-RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $
+RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
 BEGIN
   IF OLD.id_rol = 1 THEN
     IF TG_OP = 'DELETE' THEN
@@ -151,7 +151,7 @@ BEGIN
     END IF;
   END IF;
   RETURN COALESCE(NEW, OLD);
-END $;
+END $$;
 DROP TRIGGER IF EXISTS modaplus_proteger_superadmin ON public.roles;
 CREATE TRIGGER modaplus_proteger_superadmin
 BEFORE UPDATE OR DELETE ON public.roles FOR EACH ROW
