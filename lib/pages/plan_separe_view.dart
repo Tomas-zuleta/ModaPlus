@@ -1,90 +1,226 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../data/app_store.dart';
-import '../models/plan_separe.dart';
-import '../utils/animations.dart';
-import '../utils/app_colors.dart';
-import '../utils/format.dart';
-import '../widgets/empty_state.dart';
-import '../widgets/filter_chips.dart';
-import '../widgets/progress_bar.dart';
-import '../widgets/status_chip.dart';
-import 'plan_separe_detail_page.dart';
+import '../services/admin_permissions.dart';
+import '../services/administrative_transactions.dart';
+import 'transaction_entry_page.dart';
+import 'layaway_payment_sheet.dart';
 
-enum PlanFilter { all, active, cancelled }
-
+/// Plan Separe del administrador: solo datos reales de Supabase.
+/// No usa los ejemplos locales del AppStore.
 class PlanSepareView extends StatefulWidget {
   const PlanSepareView({super.key});
-
   @override
   State<PlanSepareView> createState() => _PlanSepareViewState();
 }
 
 class _PlanSepareViewState extends State<PlanSepareView> {
-  PlanFilter _filter = PlanFilter.all;
+  late Future<List<_PlanSummary>> _plans;
+  String _filter = 'TODOS';
 
-  String _label(PlanFilter f) => switch (f) {
-        PlanFilter.all => 'Todos',
-        PlanFilter.active => 'Activos',
-        PlanFilter.cancelled => 'Anulados',
-      };
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
+  void _refresh() => _plans = _load();
+
+  Future<List<_PlanSummary>> _load() async {
+    await AdminPermissions.instance.require('separe', 'view');
+    final db = Supabase.instance.client;
+    final results = await Future.wait([
+      db.from('planes_separe')
+        .select('id_plan_separe,id_cliente,fecha_inicio,fecha_vencimiento,estado,abono_inicial,clientes(nombres,apellidos)')
+        .order('id_plan_separe', ascending: false).limit(250),
+      db.from('detalles_plan_separe')
+        .select('id_plan_separe,cantidad,precio_unitario').limit(1500),
+      db.from('abonos_separe')
+        .select('id_plan_separe,valor_abono,estado').limit(1500),
+    ]);
+    final details = results[1];
+    final payments = results[2];
+    return results[0].map((row) {
+      final id = (row['id_plan_separe'] as num).toInt();
+      final clientRaw = row['clientes'];
+      final client = clientRaw is List
+        ? (clientRaw.isNotEmpty ? clientRaw.first : null) : clientRaw;
+      final clientMap = client is Map ? client : <String, dynamic>{};
+      final name = '${clientMap['nombres'] ?? ''} ${clientMap['apellidos'] ?? ''}'.trim();
+      final total = details.where((line) => line['id_plan_separe'] == id)
+        .fold<double>(0, (sum, line) => sum +
+          ((line['cantidad'] as num?)?.toDouble() ?? 0) *
+          ((line['precio_unitario'] as num?)?.toDouble() ?? 0));
+      final paid = ((row['abono_inicial'] as num?)?.toDouble() ?? 0)
+        + payments.where((p) => p['id_plan_separe'] == id
+          && (p['estado'] ?? 'ACTIVO').toString().toUpperCase() == 'ACTIVO')
+            .fold<double>(0, (sum, p) => sum +
+              ((p['valor_abono'] as num?)?.toDouble() ?? 0));
+      return _PlanSummary(
+        id: id, name: name.isEmpty ? 'Cliente #${row['id_cliente']}' : name,
+        state: row['estado']?.toString() ?? 'Sin estado',
+        due: row['fecha_vencimiento']?.toString() ?? '-',
+        total: total, paid: paid,
+      );
+    }).toList();
+  }
+
+  Future<void> _create() async {
+    final saved = await Navigator.push<bool>(context,
+      MaterialPageRoute(builder: (_) => const TransactionEntryPage(module: 'separe')));
+    if (saved == true && mounted) setState(_refresh);
+  }
+
+  Future<void> _pay(_PlanSummary plan) async {
+    final allowed = await AdminPermissions.instance.can('abonos', 'create');
+    if (!mounted) return;
+    if (!allowed) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('No tienes permiso para registrar abonos.')));
+      return;
+    }
+    final saved = await showModalBottomSheet<bool>(
+      context: context, isScrollControlled: true,
+      useSafeArea: true, showDragHandle: false,
+      builder: (_) => LayawayPaymentSheet(
+        planId: plan.id, balance: plan.balance),
+    );
+    if (saved == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Abono guardado correctamente.')));
+      setState(_refresh);
+    }
+  }
+
+  Future<void> _annul(_PlanSummary plan) async {
+    final allowed = await AdminPermissions.instance.can('separe', 'annul');
+    if (!mounted) return;
+    if (!allowed) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('No tienes permiso para anular planes.')));
+      return;
+    }
+    final yes = await showDialog<bool>(context: context, builder: (ctx) =>
+      AlertDialog(
+        title: const Text('Anular Plan Separe'),
+        content: Text('¿Anular el plan #${plan.id} de ${plan.name}? '
+          'La reserva y los abonos se liquidarán según las reglas del servidor.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Confirmar anulación')),
+        ],
+      ));
+    if (yes != true || !mounted) return;
+    try {
+      await AdministrativeTransactions.instance.annulLayaway(plan.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Plan anulado por Supabase.')));
+      setState(_refresh);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo anular: $e')));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: AppStore.instance,
-      builder: (context, _) {
-        final plans = AppStore.instance.plans.where((p) {
-          switch (_filter) {
-            case PlanFilter.all:
-              return true;
-            case PlanFilter.active:
-              return p.isActive;
-            case PlanFilter.cancelled:
-              return !p.isActive;
-          }
-        }).toList();
-
-        return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
-              children: [
-                Text(
-                  'Plan Separe',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ).stagger(0),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
-                  ),
-                  child: Text('Reservas realizadas por los clientes',
-                    style: Theme.of(context).textTheme.bodyLarge),
-                ).stagger(1),
-                const SizedBox(height: 20),
-                FilterChipsRow<PlanFilter>(
-                  values: PlanFilter.values,
-                  selected: _filter,
-                  labelOf: _label,
-                  onSelected: (f) => setState(() => _filter = f),
-                ).stagger(2),
+    return FutureBuilder<List<_PlanSummary>>(
+      future: _plans,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return RefreshIndicator(
+          onRefresh: () async { setState(_refresh); await _plans; },
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              Text('Plan Separe', style: Theme.of(context).textTheme.headlineMedium),
+              const SizedBox(height: 8),
+              const Text('Consulta reservas, revisa cuánto han pagado '
+                'y registra los abonos en un solo lugar.'),
+              const SizedBox(height: 20),
+              FutureBuilder<bool>(
+                future: AdminPermissions.instance.can('separe', 'create'),
+                builder: (context, result) => result.data == true
+                  ? FilledButton.icon(
+                      onPressed: _create,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Crear un Plan Separe'))
+                  : const SizedBox.shrink(),
+              ),
+              const SizedBox(height: 16),
+              if (snapshot.hasError) ...[
+                const Icon(Icons.error_outline, size: 48),
+                const SizedBox(height: 12),
+                const Text('No pudimos cargar los planes. '
+                  'Comprueba tu conexión y los permisos en Supabase.'),
+                TextButton(onPressed: () => setState(_refresh),
+                  child: const Text('Reintentar')),
+              ] else ...[
+                SegmentedButton<String>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: 'TODOS', label: Text('Todos')),
+                    ButtonSegment(value: 'ACTIVO', label: Text('Activos')),
+                    ButtonSegment(value: 'ANULADO', label: Text('Anulados')),
+                  ],
+                  selected: {_filter},
+                  onSelectionChanged: (choice) =>
+                    setState(() => _filter = choice.first),
+                ),
                 const SizedBox(height: 16),
-                if (plans.isEmpty)
-                  const EmptyState(
-                    icon: Icons.bookmark_border,
-                    message: 'No hay planes separe en esta categoría',
-                  )
-                else
-                  for (int i = 0; i < plans.length; i++)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _PlanCard(plan: plans[i]).stagger(i > 5 ? 5 : i + 3),
+                if (snapshot.data!.isEmpty)
+                  const Card(child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Column(children: [
+                      Icon(Icons.bookmark_add_outlined, size: 52),
+                      SizedBox(height: 12),
+                      Text('Todavía no hay planes registrados.'),
+                      Text('Usa el botón Crear un Plan Separe para empezar.'),
+                    ]),
+                  )),
+                for (final plan in snapshot.data!.where((p) =>
+                  _filter == 'TODOS' ||
+                  (_filter == 'ACTIVO' && p.isActive) ||
+                  (_filter == 'ANULADO' && !p.isActive)))
+                  Card(child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text('Plan #${plan.id} · ${plan.name}',
+                          style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        Text('Estado: ${plan.state} · Vence: ${plan.due}'),
+                        const SizedBox(height: 12),
+                        Text('Total: COP ${plan.total.toStringAsFixed(0)}'),
+                        Text('Abonado: COP ${plan.paid.toStringAsFixed(0)}'),
+                        Text('Falta pagar: COP ${plan.balance.toStringAsFixed(0)}',
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 12),
+                        LinearProgressIndicator(value: plan.total > 0
+                          ? (plan.paid / plan.total).clamp(0.0, 1.0) : 0),
+                        if (plan.isActive && plan.balance > 0) ...[
+                          const SizedBox(height: 15),
+                          FilledButton.icon(
+                            onPressed: () => _pay(plan),
+                            icon: const Icon(Icons.payments_outlined),
+                            label: const Text('Registrar abono')),
+                        ],
+                        if (plan.isActive)
+                          TextButton.icon(
+                            onPressed: () => _annul(plan),
+                            icon: const Icon(Icons.block_outlined),
+                            label: const Text('Anular plan')),
+                      ],
                     ),
+                  )),
               ],
-            ),
+            ],
           ),
         );
       },
@@ -92,75 +228,13 @@ class _PlanSepareViewState extends State<PlanSepareView> {
   }
 }
 
-class _PlanCard extends StatelessWidget {
-  final PlanSepare plan;
-  const _PlanCard({required this.plan});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => PlanSepareDetailPage(plan: plan)),
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          border: Border.all(color: Theme.of(context).dividerColor),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  plan.id,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                    color: AppColors.slate,
-                  ),
-                ),
-                const Spacer(),
-                StatusChip(
-                  label: plan.isActive ? 'Activo' : 'Anulado',
-                  color: plan.isActive ? AppColors.primary : AppColors.redAccent,
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(plan.clientName,
-                style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text(
-              '${plan.items.length} producto(s) · Vence ${formatDate(plan.dueDate)}',
-              style: const TextStyle(fontSize: 13, color: AppColors.slate),
-            ),
-            const SizedBox(height: 14),
-            ProgressBar(value: plan.progress),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Abonado ${formatCop(plan.paid)}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                  ),
-                ),
-                Text(
-                  'Total ${formatCop(plan.total)}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.slate),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+class _PlanSummary {
+  final int id;
+  final String name, state, due;
+  final double total, paid;
+  const _PlanSummary({required this.id, required this.name,
+    required this.state, required this.due,
+    required this.total, required this.paid});
+  bool get isActive => state.toUpperCase() == 'ACTIVO';
+  double get balance => (total - paid).clamp(0.0, double.infinity);
 }

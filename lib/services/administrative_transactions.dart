@@ -51,6 +51,35 @@ class AdministrativeTransactions {
     return (result as num).toInt();
   }
 
+  /// Un abono es corto de registrar, pero debe verificarse en el servidor.
+  /// Este RPC existe en el esquema provisional de pruebas. Producción debe
+  /// adoptar un contrato equivalente antes de habilitar este flujo allí.
+  Future<int> registerLayawayPayment({
+    required int planId,
+    required double amount,
+    required String method,
+    String observation = '',
+  }) async {
+    await AdminPermissions.instance.require('abonos', 'create');
+    if (planId <= 0 || !amount.isFinite || amount <= 0) {
+      throw ArgumentError('Selecciona un plan y un valor válido.');
+    }
+    if (!const ['EFECTIVO', 'TRANSFERENCIA', 'QR'].contains(method)) {
+      throw ArgumentError('Selecciona un método de pago.');
+    }
+    final result = await _db.rpc('registrar_abono_separe', params: {
+      'p_id_plan': planId,
+      'p_valor': amount,
+      'p_metodo': method,
+      'p_observacion': observation.trim(),
+    });
+    if (result is! num || result <= 0) {
+      throw StateError('No se confirmó el abono. Verifica el historial '
+        'antes de volver a enviarlo.');
+    }
+    return result.toInt();
+  }
+
   Future<void> annulLayaway(int id) async {
     if (id <= 0) throw ArgumentError('Plan inválido');
     await AdminPermissions.instance.require('separe', 'annul');
