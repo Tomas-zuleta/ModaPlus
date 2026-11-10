@@ -4,6 +4,7 @@ import '../services/admin_permissions.dart';
 import 'transaction_entry_page.dart';
 import 'loss_entry_page.dart';
 import 'administration_editor_page.dart';
+import 'role_permissions_page.dart';
 import '../services/administrative_transactions.dart';
 
 class AdminDomainDefinition {
@@ -242,6 +243,19 @@ class _AdminDomainPageState extends State<AdminDomainPage> {
                             },
                             icon: const Icon(Icons.edit_outlined),
                             label: Text(def.table == 'usuarios' ? 'Asignar roles' : 'Editar'))
+                        : const SizedBox.shrink()),
+                  if (def.table == 'roles' &&
+                      (row['id_rol'] as num?)?.toInt() != 1)
+                    FutureBuilder<bool>(
+                      future: AdminPermissions.instance.can('roles', 'edit'),
+                      builder: (context, allowed) => allowed.data == true
+                        ? OutlinedButton.icon(
+                            onPressed: () => Navigator.push<void>(context,
+                              MaterialPageRoute(builder: (_) => RolePermissionsPage(
+                                roleId: (row['id_rol'] as num).toInt(),
+                                roleName: row['nombre_rol']?.toString() ?? 'Rol'))),
+                            icon: const Icon(Icons.admin_panel_settings_outlined),
+                            label: const Text('Configurar permisos'))
                         : const SizedBox.shrink()),
                   if (const ['compras', 'planes_separe', 'abonos_separe', 'perdidas']
                     .contains(def.table) &&
