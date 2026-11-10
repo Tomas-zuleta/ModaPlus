@@ -64,6 +64,121 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       '${color.isEmpty ? '' : ' · $color'}';
   }
 
+  String _partyName(Map<String, dynamic> row) {
+    if (_purchase) {
+      return (row['razon_social'] ?? row['nombre_proveedor'] ?? 'Proveedor')
+        .toString();
+    }
+    final name = '${row['nombres'] ?? ''} ${row['apellidos'] ?? ''}'.trim();
+    return name.isEmpty ? 'Cliente #${row['id_cliente']}' : name;
+  }
+
+  Future<void> _chooseParty() async {
+    String query = '';
+    final value = await showModalBottomSheet<int>(
+      context: context, isScrollControlled: true, useSafeArea: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, update) {
+          final visible = _parties.where((row) {
+            final label = '${_partyName(row)} ${row['identificacion'] ?? ''}'
+              .toLowerCase();
+            return label.contains(query.toLowerCase());
+          }).toList();
+          return SizedBox(
+            height: MediaQuery.sizeOf(ctx).height * .76,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+              child: Column(children: [
+                Center(child: Container(height: 5, width: 44,
+                  decoration: BoxDecoration(color: Colors.black26,
+                    borderRadius: BorderRadius.circular(10)))),
+                const SizedBox(height: 16),
+                Text(_purchase ? 'Buscar proveedor' : 'Buscar cliente',
+                  style: Theme.of(ctx).textTheme.headlineSmall),
+                const SizedBox(height: 14),
+                TextField(
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search),
+                    labelText: _purchase ? 'Nombre del proveedor'
+                      : 'Nombre o documento del cliente'),
+                  onChanged: (text) => update(() => query = text),
+                ),
+                const SizedBox(height: 10),
+                Expanded(child: visible.isEmpty
+                  ? const Center(child: Text('No encontramos registros '
+                      'con ese nombre.'))
+                  : ListView.builder(
+                      itemCount: visible.length,
+                      itemBuilder: (ctx, index) {
+                        final row = visible[index];
+                        return Card(child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 7),
+                          leading: Icon(_purchase
+                            ? Icons.local_shipping_outlined
+                            : Icons.person_outline),
+                          title: Text(_partyName(row)),
+                          subtitle: Text('${row['identificacion'] ?? ''}'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => Navigator.pop(ctx,
+                            (row[_partyId] as num).toInt()),
+                        ));
+                      },
+                    )),
+              ]),
+            ),
+          );
+        },
+      ),
+    );
+    if (value != null && mounted) setState(() => _party = value);
+  }
+
+  Future<void> _chooseSale() async {
+    String query = '';
+    final value = await showModalBottomSheet<int>(
+      context: context, isScrollControlled: true, useSafeArea: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, update) {
+          final visible = _sales.where((sale) =>
+            '${sale['id_venta']}'.contains(query)).toList();
+          return SizedBox(
+            height: MediaQuery.sizeOf(ctx).height * .7,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+              child: Column(children: [
+                Text('Elegir venta original',
+                  style: Theme.of(ctx).textTheme.headlineSmall),
+                const SizedBox(height: 12),
+                TextField(
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.search),
+                    labelText: 'Buscar número de venta'),
+                  onChanged: (text) => update(() => query = text),
+                ),
+                const SizedBox(height: 12),
+                Expanded(child: ListView(
+                  children: [
+                    for (final sale in visible)
+                      Card(child: ListTile(
+                        title: Text('Venta #${sale['id_venta']}'),
+                        subtitle: Text('Estado: ${sale['estado']}'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => Navigator.pop(ctx,
+                          (sale['id_venta'] as num).toInt()),
+                      )),
+                  ],
+                )),
+              ]),
+            ),
+          );
+        },
+      ),
+    );
+    if (value != null && mounted) setState(() => _sale = value);
+  }
+
   Future<void> _chooseVariant(int index) async {
     String query = '';
     final selected = await showModalBottomSheet<int>(
@@ -291,23 +406,22 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
           Text('1. ${_purchase ? 'Proveedor' : _return ? 'Venta original' : 'Cliente'}',
             style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 10),
-          if (!_return) DropdownButtonFormField<int>(
-            value: _party, isExpanded: true,
-            decoration: InputDecoration(labelText: _purchase ? 'Proveedor' : 'Cliente'),
-            items: _parties.map((p) => DropdownMenuItem<int>(
-              value: (p[_partyId] as num).toInt(),
-              child: Text('${p[_partyLabel] ?? ''} ${p['apellidos'] ?? ''}',
-                overflow: TextOverflow.ellipsis))).toList(),
-            onChanged: (v) => setState(() => _party = v),
-            validator: (v) => v == null ? 'Selecciona un registro' : null),
-          if (_return) DropdownButtonFormField<int>(
-            value: _sale, isExpanded: true,
-            decoration: const InputDecoration(labelText: 'Venta de origen'),
-            items: _sales.map((s) => DropdownMenuItem<int>(
-              value: (s['id_venta'] as num).toInt(),
-              child: Text('Venta #${s['id_venta']} · ${s['estado']}'))).toList(),
-            onChanged: (v) => setState(() => _sale = v),
-            validator: (v) => v == null ? 'Selecciona una venta' : null),
+          Card(child: ListTile(
+            leading: Icon(_return ? Icons.receipt_long_outlined
+              : _purchase ? Icons.local_shipping_outlined : Icons.person_outline),
+            title: Text(_return
+              ? (_sale == null ? 'Toca para elegir la venta' : 'Venta #$_sale')
+              : (_party == null
+                ? (_purchase ? 'Toca para elegir proveedor' : 'Toca para elegir cliente')
+                : _partyName(_parties.firstWhere((p) =>
+                    (p[_partyId] as num).toInt() == _party)))),
+            subtitle: Text(_return ? 'Consultar ventas registradas'
+              : _purchase ? 'Buscar proveedor por nombre'
+              : 'Buscar cliente por nombre o documento'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _return ? _chooseSale : _chooseParty,
+          )),
+          const SizedBox(height: 12),
           TextFormField(controller: _date, readOnly: true,
             decoration: const InputDecoration(labelText: 'Fecha (hoy)')),
           if (_purchase) TextFormField(controller: _invoice,
