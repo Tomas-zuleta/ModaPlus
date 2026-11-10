@@ -101,11 +101,9 @@ class CatalogAdminPage extends StatelessWidget {
           title: 'Proveedores',
           hint: 'Registrar a quién compras mercancía.',
           onTap: () => _open(context, 'Proveedores',
-            const Scaffold(
-              appBar: PreferredSize(
-                preferredSize: Size.fromHeight(kToolbarHeight),
-                child: AppBar(title: Text('Proveedores'))),
-              body: SafeArea(child: SuppliersView())))),
+            Scaffold(
+              appBar: AppBar(title: const Text('Proveedores')),
+              body: const SafeArea(child: SuppliersView())))),
         _section(context, 'Movimientos de la tienda',
           'Registra compras y revisa el historial.'),
         _entry(context, icon: Icons.shopping_bag_outlined,
