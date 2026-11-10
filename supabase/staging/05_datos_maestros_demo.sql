@@ -136,6 +136,27 @@ END
 $policies$;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
 
+-- Nunca permitir que el CRUD genérico elimine o desactive el rol principal
+-- ni cambie sus datos desde un cliente autenticado.
+CREATE OR REPLACE FUNCTION public.modaplus_proteger_rol_admin()
+RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $
+BEGIN
+  IF OLD.id_rol = 1 THEN
+    IF TG_OP = 'DELETE' THEN
+      RAISE EXCEPTION 'El rol principal de pruebas no se puede eliminar.';
+    END IF;
+    IF NEW.estado <> 'ACTIVO'
+       OR NEW.nombre_rol <> OLD.nombre_rol THEN
+      RAISE EXCEPTION 'El rol Superadmin no se puede desactivar ni renombrar.';
+    END IF;
+  END IF;
+  RETURN COALESCE(NEW, OLD);
+END $;
+DROP TRIGGER IF EXISTS modaplus_proteger_superadmin ON public.roles;
+CREATE TRIGGER modaplus_proteger_superadmin
+BEFORE UPDATE OR DELETE ON public.roles FOR EACH ROW
+EXECUTE FUNCTION public.modaplus_proteger_rol_admin();
+
 -- Registro de módulo/acción para formularios y permisos (solo ficticio).
 INSERT INTO public.modulos(codigo) VALUES
  ('dashboard'),('inventario'),('colores'),('tallas'),('categorias'),

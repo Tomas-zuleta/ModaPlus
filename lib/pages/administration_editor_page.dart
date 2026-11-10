@@ -117,6 +117,10 @@ class _AdministrationEditorPageState extends State<AdministrationEditorPage> {
       final existing = widget.record;
       await AdminPermissions.instance.require(_module,
         existing == null ? 'create' : 'edit');
+      if (_role && (existing?['id_rol'] as num?)?.toInt() == 1) {
+        throw StateError('El rol principal SUPERADMIN está protegido. '
+          'No se puede editar desde este formulario.');
+      }
       final db = Supabase.instance.client;
       if (_user) {
         final userId = (existing?['id_usuario'] as num).toInt();
