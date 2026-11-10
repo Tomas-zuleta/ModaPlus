@@ -50,6 +50,11 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/staging/04_corregir_login_admin.sql
           psql -v ON_ERROR_STOP=1 -f supabase/staging/05_datos_maestros_demo.sql
           psql -v ON_ERROR_STOP=1 -f supabase/staging/06_transacciones_demo.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/staging/07_devoluciones_perdidas_roles.sql
           psql -v ON_ERROR_STOP=1 -f supabase/staging/07_permisos_roles_demo.sql
       - name: Test purchases, sales, layaway payments and roles
         run: psql -v ON_ERROR_STOP=1 -f supabase/staging/tests/02_smoke_transactions.sql
+      - name: Re-run exact one-file installer copied by the user
+        run: psql -v ON_ERROR_STOP=1 -f supabase/staging/INSTALAR_05_06_07_en_prubasmoda.sql
+      - name: Verify returns, losses and role assignments
+        run: psql -v ON_ERROR_STOP=1 -f supabase/staging/tests/03_smoke_returns_losses.sql

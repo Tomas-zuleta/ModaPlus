@@ -1,9 +1,8 @@
--- MODAPLUS: INSTALADOR UNICO SOLO PARA prubasmoda (NO PRODUCCION).
--- Requiere pasos 01-04 y el producto ficticio DEMO-001.
--- No usar datos reales. Verifica el nombre del proyecto Supabase.
+-- MODAPLUS: INSTALACION UNICA DE STAGING (solo prubasmoda).
+-- Necesita pasos 01-04 y el usuario de prueba SUPERADMIN.
+-- NO USAR EN LA BASE ORIGINAL. Operaciones solo con datos ficticios.
 
--- ========= PASO 5 =========
-
+-- ========= MODULO 1 =========
 -- MODAPLUS STAGING PASO 05: solo prubasmoda (NO PRODUCCION).
 -- Requiere pasos 01-04, usuario de pruebas SUPERADMIN y DEMO-001.
 -- Extiende los campos usados por Flutter y habilita CRUD de tablas maestras.
@@ -145,7 +144,7 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
 -- Nunca permitir que el CRUD genérico elimine o desactive el rol principal
 -- ni cambie sus datos desde un cliente autenticado.
 CREATE OR REPLACE FUNCTION public.modaplus_proteger_rol_admin()
-RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $
+RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
 BEGIN
   IF OLD.id_rol = 1 THEN
     IF TG_OP = 'DELETE' THEN
@@ -157,7 +156,7 @@ BEGIN
     END IF;
   END IF;
   RETURN COALESCE(NEW, OLD);
-END $;
+END $$;
 DROP TRIGGER IF EXISTS modaplus_proteger_superadmin ON public.roles;
 CREATE TRIGGER modaplus_proteger_superadmin
 BEFORE UPDATE OR DELETE ON public.roles FOR EACH ROW
@@ -188,8 +187,7 @@ SELECT
       AND column_name = 'identificacion') AS campo_cliente;
 
 
--- ========= PASO 6 =========
-
+-- ========= MODULO 2 =========
 -- MODAPLUS STAGING PASO 06 — Operaciones comerciales ficticias.
 -- SOLO prubasmoda, después de pasos 01-05. NO PRODUCCION.
 -- El administrador debe estar autenticado; todas las operaciones son atómicas.
@@ -613,8 +611,7 @@ WHERE pronamespace='public'::regnamespace
 ORDER BY proname;
 
 
--- ========= PASO 7 =========
-
+-- ========= MODULO 3 =========
 -- MODAPLUS STAGING PASO 07. SOLO prubasmoda, después de 05 y 06.
 -- Solicitudes de devolución, pérdidas, roles y rechazo de pedidos.
 -- NO es el esquema original del proyecto de producción.
@@ -839,8 +836,7 @@ WHERE pronamespace='public'::regnamespace
 ORDER BY proname;
 
 
--- ========= PASO 8 =========
-
+-- ========= MODULO 4 =========
 -- PASO 07. SOLO prubasmoda. Requiere esquema provisional y pasos previos.
 -- Permisos por rol se guardan juntos. El SUPERADMIN no puede modificarse.
 begin;
@@ -921,8 +917,7 @@ select
     'public.modaplus_actualizar_permisos_rol(bigint,jsonb)', 'EXECUTE')
     as disponible_para_autenticados;
 
-
--- ========= COMPROBACION FINAL =========
+-- ========= RESULTADO FINAL =========
 SELECT
   (SELECT count(*) FROM pg_proc WHERE pronamespace='public'::regnamespace
     AND proname IN ('guardar_compra','guardar_venta','guardar_plan_separe',
