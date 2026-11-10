@@ -118,6 +118,50 @@ class _AdminDomainPageState extends State<AdminDomainPage> {
     setState(() { _offset = offset; _refresh(); });
   }
 
+  String _label(String key) => const {
+    'id_producto': 'Código de producto',
+    'id_variante': 'Código de variante',
+    'id_compra': 'Número de compra',
+    'id_venta': 'Número de venta',
+    'id_cliente': 'Cliente',
+    'id_proveedor': 'Proveedor',
+    'id_plan_separe': 'Número del plan',
+    'id_abono': 'Número de abono',
+    'id_usuario': 'Número de usuario',
+    'id_rol': 'Número de rol',
+    'nombre_producto': 'Nombre',
+    'referencia': 'Referencia',
+    'precio_venta': 'Precio de venta',
+    'stock_actual': 'Unidades disponibles',
+    'fecha_compra': 'Fecha de compra',
+    'fecha_venta': 'Fecha de venta',
+    'fecha_inicio': 'Fecha de inicio',
+    'fecha_vencimiento': 'Vencimiento',
+    'estado': 'Estado',
+    'nombre_rol': 'Nombre del rol',
+    'id_talla': 'Talla',
+    'id_color': 'Color',
+    'total_venta': 'Total',
+    'origen': 'Origen',
+    'valor_abono': 'Importe del abono',
+  }[key] ?? key;
+
+  String _rowTitle(AdminDomainDefinition def, Map<String, dynamic> row) {
+    if (def.table == 'productos') {
+      return row['nombre_producto']?.toString() ?? 'Producto sin nombre';
+    }
+    if (def.table == 'roles') {
+      return row['nombre_rol']?.toString() ?? 'Rol';
+    }
+    if (def.table == 'usuarios') {
+      return 'Usuario #${row['id_usuario'] ?? '—'}';
+    }
+    if (def.table == 'variantes_producto') {
+      return 'Variante #${row['id_variante'] ?? '—'}';
+    }
+    return '${def.title} #${row[def.primaryKey] ?? '—'}';
+  }
+
   String _format(Object? value) {
     if (value == null) return '—';
     final text = value.toString();
@@ -128,7 +172,7 @@ class _AdminDomainPageState extends State<AdminDomainPage> {
   Widget build(BuildContext context) {
     final def = widget.definition;
     return Scaffold(
-      appBar: AppBar(title: Text(def.title.toUpperCase()),
+      appBar: AppBar(title: Text(def.title),
         actions: [IconButton(tooltip: 'Actualizar',
           onPressed: () => setState(_refresh),
           icon: const Icon(Icons.refresh))]),
@@ -140,7 +184,7 @@ class _AdminDomainPageState extends State<AdminDomainPage> {
             builder: (context, permission) => permission.data == true
               ? FloatingActionButton.extended(
                   icon: const Icon(Icons.add),
-                  label: const Text('Registrar'),
+                  label: const Text('Crear nuevo'),
                   onPressed: () async {
                     final saved = await Navigator.push<bool>(context,
                       MaterialPageRoute(builder: (_) => def.module == 'perdidas'
@@ -164,14 +208,22 @@ class _AdminDomainPageState extends State<AdminDomainPage> {
           return ListView(padding: const EdgeInsets.all(16), children: [
             Text(def.description, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            const Text('Consulta autorizada. Crear, editar, anular o eliminar '
-              'requiere el flujo específico de la web; no se permite '
-              'modificar registros desde esta pantalla.'),
+            const Text('Toca un registro para ver sus datos. '
+              'Las acciones disponibles aparecen dentro de cada tarjeta.'),
             const SizedBox(height: 16),
-            if (rows.isEmpty) const Text('No hay registros visibles.'),
+            if (rows.isEmpty)
+              const Card(child: Padding(
+                padding: EdgeInsets.all(22),
+                child: Column(children: [
+                  Icon(Icons.inbox_outlined, size: 46),
+                  SizedBox(height: 10),
+                  Text('Todavía no hay registros.'),
+                  Text('Puedes usar Crear nuevo para empezar.'),
+                ]),
+              )),
             for (final row in rows)
               Card(child: ExpansionTile(
-                title: Text('${def.title} #${_format(row[def.primaryKey])}'),
+                title: Text(_rowTitle(def, row)),
                 subtitle: Text(def.fields.skip(1)
                   .where((key) => row[key] != null).take(2)
                   .map((key) => _format(row[key])).join(' · ')),
@@ -206,7 +258,7 @@ class _AdminDomainPageState extends State<AdminDomainPage> {
                         : const SizedBox.shrink()),
                   for (final key in def.fields)
                     if (row.containsKey(key))
-                      ListTile(dense: true, title: Text(key),
+                      ListTile(dense: true, title: Text(_label(key)),
                         subtitle: SelectableText(_format(row[key]))),
                 ],
               )),

@@ -25,54 +25,85 @@ class _SuppliersViewState extends State<SuppliersView> {
     final formKey = GlobalKey<FormState>();
     var state = row?['estado']?.toString() ?? 'ACTIVO';
     var busy = false;
-    final saved = await showDialog<bool>(context: context,
-      builder: (dialogContext) => StatefulBuilder(builder: (context, update) =>
-        AlertDialog(
-          title: Text(row == null ? 'Nuevo proveedor' : 'Editar proveedor'),
-          content: SizedBox(width: 440, child: SingleChildScrollView(
-            child: Form(key: formKey, child: Column(mainAxisSize: MainAxisSize.min,
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (routeContext) =>
+        StatefulBuilder(builder: (context, update) => Scaffold(
+          appBar: AppBar(
+            title: Text(row == null ? 'Registrar proveedor' : 'Editar proveedor')),
+          body: SafeArea(child: Form(
+            key: formKey,
+            child: ListView(
+              padding: const EdgeInsets.all(20),
               children: [
-                TextFormField(controller: nit, decoration: const InputDecoration(labelText: 'NIT *'),
-                  validator: (v) => v == null || v.trim().isEmpty ? 'Obligatorio' : null),
-                TextFormField(controller: name, decoration: const InputDecoration(labelText: 'Razón social *'),
-                  validator: (v) => v == null || v.trim().isEmpty ? 'Obligatorio' : null),
-                TextFormField(controller: contact, decoration: const InputDecoration(labelText: 'Contacto')),
-                TextFormField(controller: phone, keyboardType: TextInputType.phone,
+                Text('Datos del proveedor',
+                  style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 8),
+                const Text('Completa los datos marcados con un asterisco.'),
+                const SizedBox(height: 22),
+                TextFormField(controller: nit,
+                  decoration: const InputDecoration(labelText: 'NIT *'),
+                  validator: (v) => (v ?? '').trim().isEmpty
+                    ? 'Escribe el NIT.' : null),
+                const SizedBox(height: 14),
+                TextFormField(controller: name,
+                  decoration: const InputDecoration(labelText: 'Razón social *'),
+                  validator: (v) => (v ?? '').trim().isEmpty
+                    ? 'Escribe el nombre de la empresa.' : null),
+                const SizedBox(height: 14),
+                TextFormField(controller: contact,
+                  decoration: const InputDecoration(labelText: 'Persona de contacto')),
+                const SizedBox(height: 14),
+                TextFormField(controller: phone,
+                  keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(labelText: 'Teléfono')),
-                TextFormField(controller: email, keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Correo')),
-                TextFormField(controller: address, decoration: const InputDecoration(labelText: 'Dirección')),
+                const SizedBox(height: 14),
+                TextFormField(controller: email,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(labelText: 'Correo electrónico')),
+                const SizedBox(height: 14),
+                TextFormField(controller: address,
+                  decoration: const InputDecoration(labelText: 'Dirección')),
+                const SizedBox(height: 14),
                 DropdownButtonFormField<String>(
-                  value: state,
+                  initialValue: state,
                   decoration: const InputDecoration(labelText: 'Estado'),
                   items: const [
                     DropdownMenuItem(value: 'ACTIVO', child: Text('Activo')),
                     DropdownMenuItem(value: 'INACTIVO', child: Text('Inactivo')),
                   ],
-                  onChanged: busy ? null : (value) => update(() => state = value ?? 'ACTIVO'),
+                  onChanged: busy ? null
+                    : (value) => update(() => state = value ?? 'ACTIVO'),
                 ),
-              ])))),
-          actions: [
-            TextButton(onPressed: busy ? null : () => Navigator.pop(context, false),
-              child: const Text('Cancelar')),
-            FilledButton(onPressed: busy ? null : () async {
-              if (!formKey.currentState!.validate()) return;
-              update(() => busy = true);
-              try {
-                await SuppliersService.instance.save(
-                  id: (row?['id_proveedor'] as num?)?.toInt(),
-                  nit: nit.text, razonSocial: name.text, contacto: contact.text,
-                  telefono: phone.text, correo: email.text,
-                  direccion: address.text, estado: state);
-                if (context.mounted) Navigator.pop(context, true);
-              } catch (_) {
-                update(() => busy = false);
-                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('No se pudo guardar. Comprueba permisos y datos.')));
-              }
-            }, child: Text(busy ? 'Guardando...' : 'Guardar')),
-          ],
-        )));
+                const SizedBox(height: 24),
+                FilledButton.icon(
+                  onPressed: busy ? null : () async {
+                    if (!formKey.currentState!.validate()) return;
+                    update(() => busy = true);
+                    try {
+                      await SuppliersService.instance.save(
+                        id: (row?['id_proveedor'] as num?)?.toInt(),
+                        nit: nit.text, razonSocial: name.text,
+                        contacto: contact.text, telefono: phone.text,
+                        correo: email.text, direccion: address.text, estado: state);
+                      if (context.mounted) Navigator.pop(context, true);
+                    } catch (error) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('No se pudo guardar: $error')));
+                        update(() => busy = false);
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.save_outlined),
+                  label: Text(busy ? 'Guardando...' : 'Guardar proveedor')),
+                TextButton(
+                  onPressed: busy ? null : () => Navigator.pop(context, false),
+                  child: const Text('Cancelar')),
+              ],
+            ),
+          )),
+        ))),
+    );
     for (final c in [nit, name, contact, phone, email, address]) { c.dispose(); }
     if (saved == true && mounted) setState(_reload);
   }
