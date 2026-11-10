@@ -23,11 +23,11 @@ class _AdminShellState extends State<AdminShell> {
   int _index = 0;
 
   static const List<NavItemData> _items = [
-    NavItemData(Icons.bar_chart_outlined, Icons.bar_chart, 'DASHBOARD'),
-    NavItemData(Icons.bookmark_border, Icons.bookmark, 'SEPARE'),
+    NavItemData(Icons.bar_chart_outlined, Icons.bar_chart, 'INICIO'),
+    NavItemData(Icons.bookmark_border, Icons.bookmark, 'SEPARES'),
     NavItemData(Icons.receipt_long_outlined, Icons.receipt_long, 'PEDIDOS'),
     NavItemData(Icons.local_shipping_outlined, Icons.local_shipping, 'GESTIÓN'),
-    NavItemData(Icons.person_outline, Icons.person, 'PERFIL'),
+    NavItemData(Icons.person_outline, Icons.person, 'MI CUENTA'),
   ];
 
   Widget _page(int i) {

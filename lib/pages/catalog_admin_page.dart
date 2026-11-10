@@ -5,59 +5,138 @@ import 'suppliers_view.dart';
 import 'admin_domain_page.dart';
 import 'master_data_page.dart';
 
-/// Entrada administrativa por dominio; no ofrece CRUD genérico indiscriminado.
+/// Un menú por tareas, no un catálogo de nombres técnicos de tablas.
 class CatalogAdminPage extends StatelessWidget {
   const CatalogAdminPage({super.key});
-  @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(20),
-    children: [
-      Text('GESTIÓN', style: Theme.of(context).textTheme.headlineMedium),
-      const SizedBox(height: 12),
-      const Text('Módulos administrativos conectados a Supabase. '
-        'Las acciones disponibles dependen de los permisos de tu cuenta.'),
-      const SizedBox(height: 16),
-      ListTile(leading: const Icon(Icons.local_shipping_outlined),
-        title: const Text('Proveedores'), subtitle: const Text('Crear, editar y desactivar'),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => Navigator.push(context, MaterialPageRoute(
-          builder: (_) => const Scaffold(body: SafeArea(child: SuppliersView()))))),
-      for (final item in masterDataModules)
-        ListTile(
-          leading: Icon(item.icon),
-          title: Text(item.title),
-          subtitle: const Text('Consultar, crear, editar y cambiar estado'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.push(context, MaterialPageRoute(
-            builder: (_) => MasterDataPage(definition: item))),
-        ),
-      const Divider(height: 32),
-      Text('OTROS MÓDULOS DE LA WEB',
-        style: Theme.of(context).textTheme.titleMedium),
-      const SizedBox(height: 6),
-      const Text('Consultas con permisos de Supabase. Las acciones que '
-        'requieren transacciones se habilitarán solo tras verificar sus RPC.'),
-      for (final item in adminDomainModules)
-        ListTile(
-          leading: Icon(item.icon),
-          title: Text(item.title),
-          subtitle: Text(item.description),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.push(context, MaterialPageRoute(
-            builder: (_) => AdminDomainPage(definition: item))),
-        ),
-      const Divider(height: 24),
-      for (final module in const ['categorias', 'colores'])
-        ListTile(
-          leading: Icon(module == 'categorias' ? Icons.category_outlined : Icons.palette_outlined),
-          title: Text(module == 'categorias' ? 'Categorías' : 'Colores'),
-          subtitle: const Text('Consultar, crear, editar y eliminar'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.push(context, MaterialPageRoute(
-            builder: (_) => CatalogReferencePage(module: module))),
-        ),
-    ],
+
+  void _open(BuildContext context, String title, Widget child) {
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => child));
+  }
+
+  Widget _entry(BuildContext context, {
+    required IconData icon, required String title,
+    required String hint, required VoidCallback onTap,
+  }) => Card(
+    margin: const EdgeInsets.only(bottom: 10),
+    child: ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+      leading: CircleAvatar(
+        backgroundColor: const Color(0xFFE9F5EF),
+        child: Icon(icon, color: const Color(0xFF28744D)),
+      ),
+      title: Text(title, style: Theme.of(context).textTheme.titleMedium),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 5),
+        child: Text(hint, style: Theme.of(context).textTheme.bodyMedium)),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: onTap,
+    ),
   );
+
+  Widget _section(BuildContext context, String title, String hint) =>
+    Padding(
+      padding: const EdgeInsets.only(top: 24, bottom: 12),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title, style: Theme.of(context).textTheme.titleLarge),
+        Text(hint, style: Theme.of(context).textTheme.bodyMedium),
+      ]),
+    );
+
+  @override
+  Widget build(BuildContext context) {
+    AdminDomainDefinition? find(String table) {
+      for (final item in adminDomainModules) {
+        if (item.table == table) return item;
+      }
+      return null;
+    }
+    void openDomain(String table) {
+      final item = find(table);
+      if (item != null) _open(context, item.title,
+        AdminDomainPage(definition: item));
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 24, 18, 34),
+      children: [
+        Text('Gestionar mi tienda',
+          style: Theme.of(context).textTheme.headlineMedium),
+        const SizedBox(height: 8),
+        const Text('Elige qué quieres hacer. Puedes crear, consultar '
+          'y actualizar registros con los permisos de tu cuenta.'),
+        _section(context, 'Productos e inventario',
+          'Organiza lo que vendes y consulta las existencias.'),
+        _entry(context, icon: Icons.checkroom_outlined,
+          title: 'Mis productos',
+          hint: 'Crear prendas, corregir su información y cambiar su estado.',
+          onTap: () => openDomain('productos')),
+        _entry(context, icon: Icons.inventory_2_outlined,
+          title: 'Precios, tallas y existencias',
+          hint: 'Registrar variantes y consultar unidades disponibles.',
+          onTap: () => openDomain('variantes_producto')),
+        _entry(context, icon: Icons.category_outlined,
+          title: 'Categorías',
+          hint: 'Organizar camisetas, pantalones y otras clases de productos.',
+          onTap: () => _open(context, 'Categorías',
+            const CatalogReferencePage(module: 'categorias'))),
+        _entry(context, icon: Icons.palette_outlined,
+          title: 'Colores',
+          hint: 'Crear colores y cambiar sus datos.',
+          onTap: () => _open(context, 'Colores',
+            const CatalogReferencePage(module: 'colores'))),
+        _entry(context, icon: Icons.straighten_outlined,
+          title: 'Tallas',
+          hint: 'Añadir o actualizar tallas.',
+          onTap: () => _open(context, 'Tallas',
+            MasterDataPage(definition: masterDataModules.first))),
+        _section(context, 'Personas',
+          'Organiza la información para vender y comprar.'),
+        _entry(context, icon: Icons.people_outline,
+          title: 'Clientes',
+          hint: 'Registrar clientes, actualizar datos y cambiar su estado.',
+          onTap: () => _open(context, 'Clientes',
+            MasterDataPage(definition: masterDataModules.last))),
+        _entry(context, icon: Icons.local_shipping_outlined,
+          title: 'Proveedores',
+          hint: 'Registrar a quién compras mercancía.',
+          onTap: () => _open(context, 'Proveedores',
+            const Scaffold(
+              appBar: PreferredSize(
+                preferredSize: Size.fromHeight(kToolbarHeight),
+                child: AppBar(title: Text('Proveedores'))),
+              body: SafeArea(child: SuppliersView())))),
+        _section(context, 'Movimientos de la tienda',
+          'Registra compras y revisa el historial.'),
+        _entry(context, icon: Icons.shopping_bag_outlined,
+          title: 'Compras a proveedores',
+          hint: 'Agregar mercancía mediante una compra registrada.',
+          onTap: () => openDomain('compras')),
+        _entry(context, icon: Icons.receipt_long_outlined,
+          title: 'Historial de ventas',
+          hint: 'Consultar ventas realizadas y revisar sus datos.',
+          onTap: () => openDomain('ventas')),
+        _entry(context, icon: Icons.assignment_return_outlined,
+          title: 'Devoluciones',
+          hint: 'Registrar solicitudes y revisar devoluciones existentes.',
+          onTap: () => openDomain('devoluciones')),
+        _entry(context, icon: Icons.report_problem_outlined,
+          title: 'Pérdidas',
+          hint: 'Registrar prendas dañadas o perdidas.',
+          onTap: () => openDomain('perdidas')),
+        _section(context, 'Seguridad',
+          'Controla quién puede entrar y qué puede consultar.'),
+        _entry(context, icon: Icons.manage_accounts_outlined,
+          title: 'Usuarios',
+          hint: 'Consultar cuentas y asignar roles.',
+          onTap: () => openDomain('usuarios')),
+        _entry(context, icon: Icons.admin_panel_settings_outlined,
+          title: 'Roles',
+          hint: 'Consultar y editar los roles existentes.',
+          onTap: () => openDomain('roles')),
+      ],
+    );
+  }
 }
 
 class CatalogReferencePage extends StatefulWidget {
@@ -92,33 +171,62 @@ class _CatalogReferencePageState extends State<CatalogReferencePage> {
     final hex = TextEditingController(text: row?['codigo_hex']?.toString() ?? '#000000');
     var status = row?['estado']?.toString().toUpperCase() == 'INACTIVO'
       ? 'INACTIVO' : 'ACTIVO';
-    final result = await showDialog<({String name, String hex, String status})>(
-      context: context, builder: (context) => StatefulBuilder(
-        builder: (context, update) => AlertDialog(
-          title: Text(row == null ? 'Crear registro' : 'Editar registro'),
-          content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: name, decoration: const InputDecoration(labelText: 'Nombre')),
-              if (!_category) TextField(controller: hex,
-                decoration: const InputDecoration(labelText: 'Código HEX (#RRGGBB)')),
-              DropdownButton<String>(value: status, isExpanded: true,
-                items: const [
-                  DropdownMenuItem(value: 'ACTIVO', child: Text('Activo')),
-                  DropdownMenuItem(value: 'INACTIVO', child: Text('Inactivo')),
+    final result = await showModalBottomSheet<({String name, String hex, String status})>(
+      context: context, isScrollControlled: true, useSafeArea: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, update) => SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20, 16, 20,
+              MediaQuery.viewInsetsOf(sheetContext).bottom + 22),
+            child: SingleChildScrollView(child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(child: Container(width: 44, height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.black26, borderRadius: BorderRadius.circular(8)))),
+                const SizedBox(height: 14),
+                Text(row == null ? 'Agregar ${_category ? "categoría" : "color"}'
+                  : 'Editar ${_category ? "categoría" : "color"}',
+                  style: Theme.of(sheetContext).textTheme.headlineSmall),
+                const SizedBox(height: 18),
+                TextField(controller: name,
+                  decoration: const InputDecoration(labelText: 'Nombre')),
+                if (!_category) ...[
+                  const SizedBox(height: 12),
+                  TextField(controller: hex,
+                    decoration: const InputDecoration(
+                      labelText: 'Color HEX', hintText: '#112233')),
                 ],
-                onChanged: (v) => update(() => status = v ?? status)),
-            ])),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar')),
-            FilledButton(onPressed: () {
-              if (name.text.trim().isEmpty) return;
-              Navigator.pop(context, (name: name.text.trim(),
-                hex: hex.text.trim(), status: status));
-            }, child: const Text('Guardar')),
-          ],
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: status,
+                  decoration: const InputDecoration(labelText: 'Estado'),
+                  items: const [
+                    DropdownMenuItem(value: 'ACTIVO', child: Text('Activo')),
+                    DropdownMenuItem(value: 'INACTIVO', child: Text('Inactivo')),
+                  ],
+                  onChanged: (v) => update(() => status = v ?? status)),
+                const SizedBox(height: 20),
+                FilledButton.icon(onPressed: () {
+                  if (name.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(sheetContext).showSnackBar(
+                      const SnackBar(content: Text('Escribe un nombre.')));
+                    return;
+                  }
+                  Navigator.pop(sheetContext, (
+                    name: name.text.trim(), hex: hex.text.trim(), status: status));
+                }, icon: const Icon(Icons.save_outlined),
+                label: const Text('Guardar cambios')),
+                TextButton(onPressed: () => Navigator.pop(sheetContext),
+                  child: const Text('Cancelar')),
+              ],
+            )),
+          ),
         ),
-      ));
+      ),
+    );
     // Los controladores se liberan tras el cierre del diálogo.
     if (result == null || !mounted) return;
     setState(() => _busy = true);

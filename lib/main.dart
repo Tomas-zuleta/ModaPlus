@@ -34,8 +34,54 @@ class ModaPlusApp extends StatelessWidget {
       canvasColor: background,
       dialogTheme: const DialogThemeData(backgroundColor: background),
       bottomSheetTheme: const BottomSheetThemeData(backgroundColor: background),
-      fontFamily: 'Georgia',
-      fontFamilyFallback: const ['Times New Roman', 'serif'],
+      fontFamily: 'Roboto',
+      fontFamilyFallback: const ['Arial', 'sans-serif'],
+      textTheme: const TextTheme(
+        headlineMedium: TextStyle(fontSize: 28, height: 1.15,
+          fontWeight: FontWeight.w800, color: AppColors.textDark),
+        headlineSmall: TextStyle(fontSize: 24, height: 1.2,
+          fontWeight: FontWeight.w800, color: AppColors.textDark),
+        titleLarge: TextStyle(fontSize: 21, fontWeight: FontWeight.w700,
+          color: AppColors.textDark),
+        titleMedium: TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
+          color: AppColors.textDark),
+        bodyLarge: TextStyle(fontSize: 16, height: 1.45,
+          color: AppColors.textDark),
+        bodyMedium: TextStyle(fontSize: 15, height: 1.45,
+          color: AppColors.textDark),
+        labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 17),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.cardBorder)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2)),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(0, 52),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14)),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(0, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14)),
+        ),
+      ),
       colorScheme: scheme,
       chipTheme: const ChipThemeData(
         backgroundColor: Color(0xFFF1F5F9),
