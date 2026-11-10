@@ -41,7 +41,6 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   bool get _return => widget.module == 'devoluciones';
   String get _partyTable => _purchase ? 'proveedores' : 'clientes';
   String get _partyId => _purchase ? 'id_proveedor' : 'id_cliente';
-  String get _partyLabel => _purchase ? 'razon_social' : 'nombres';
   String get _title => switch (widget.module) {
     'compras' => 'Nueva compra',
     'ventas' => 'Nueva venta',
